@@ -12,3 +12,6 @@ ruff>=0.5
 mypy>=1.11
 types-requests
 pre-commit>=3.8
+
+
+openai
