@@ -24,7 +24,7 @@ llm = ChatGoogleGenerativeAI(
 # LangGraph에서 사용할 도구들을 정의합니다.
 def google_search(query: str) -> str:
     """구글 검색을 실행하는 더미 함수. 실제 구현으로 대체해야 합니다."""
-    # TODO: SerpAPIWrapper 또는 다른 검색 API 라이브러리를 사용하여 실제 검색 로직 구현
+    # TODO: 
     
     return f"'{query}'에 대한 검색 결과입니다."
 
