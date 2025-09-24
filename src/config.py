@@ -19,23 +19,8 @@ llm = ChatGoogleGenerativeAI(
     temperature=0.7,
     google_api_key=GOOGLE_API_KEY
 )
-
-# --- 도구(Tools) 초기화 ---
-# LangGraph에서 사용할 도구들을 정의합니다.
-def google_search(query: str) -> str:
-    """구글 검색을 실행하는 더미 함수. 실제 구현으로 대체해야 합니다."""
-    # TODO: 
-    
-    return f"'{query}'에 대한 검색 결과입니다."
-
-google_search_tool = Tool(
-    name="google_search",
-    description="최신 정보나 웹에서 정보를 찾을 때 사용됩니다.",
-    func=google_search
-)
-
-# 프로젝트에 필요한 모든 도구를 리스트에 추가합니다.
-tools = [
-    google_search_tool,
-    # TODO: 다른 도구들 추가 (예: DB 검색, 날씨 API 등)
+PLACES_API_FIELDS = [
+    "id", "displayName", "formattedAddress", "location",
+    "primaryType", "types", "priceLevel", "rating", "userRatingCount",
+    "regularOpeningHours", "reviews"
 ]
