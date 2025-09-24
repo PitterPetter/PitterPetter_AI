@@ -1,9 +1,11 @@
-#nodes/category_llm_node.py
 import json
+import time
+import requests
 from typing import Dict, Any
 from models.schemas import State
 from langsmith import Client
-from config import llm
+from config import llm, PLACES_API_FIELDS # 수정: PLACES_API_FIELDS 임포트
+from places_api.text_search_service import search_text
 import re
 
 # LangSmith 클라이언트 초기화
@@ -13,24 +15,67 @@ except Exception as e:
     print(f"⚠️ LangSmith Client 초기화 실패. 오류: {e}")
     client = None
 
-# --- 개별 카테고리 에이전트 노드 ---
+# --- 공통 함수: 구글 플레이스 API 호출 ---
+def get_poi_data(query: str, location: tuple) -> list:
+    """
+    주어진 쿼리와 위치로 구글 플레이스 API를 호출하여 POI 데이터를 가져옵니다.
+    """
+    all_places = []
+    
+    # 최초 요청
+    result = search_text(
+        text_query=query,
+        location=location,
+        radius=2000,
+        fields=PLACES_API_FIELDS, # 수정: PLACES_API_FIELDS 변수 사용
+        language="ko",
+    )
+    all_places.extend(result.get("places", []))
 
-def _invoke_agent(state: State, category: str, prompt_name: str) -> Dict[str, Any]:
-    """공통 로직을 처리하는 헬퍼 함수"""
+    # 다음 페이지 토큰 처리
+    next_page_token = result.get("nextPageToken")
+    while next_page_token:
+        time.sleep(1)
+        result = search_text(
+            text_query=query,
+            location=location,
+            radius=2000,
+            fields=PLACES_API_FIELDS, # 수정: PLACES_API_FIELDS 변수 사용
+            language="ko",
+            page_token=next_page_token,
+        )
+        all_places.extend(result.get("places", []))
+        next_page_token = result.get("nextPageToken")
+
+    return all_places
+
+
+# --- 공통 로직을 처리하는 헬퍼 함수 ---
+def _invoke_agent(state: State, category: str, prompt_name: str, search_query: str) -> Dict[str, Any]:
+    # ... (기존과 동일한 코드) ...
     print(f"✅ {category} 추천 에이전트 실행")
     
-    if not client:
-        print(f"⛔️ LangSmith 클라이언트가 없어 {category} 노드를 건너뜁니다.")
-        return {"recommendations": []}
+    location = (state.user_data.get("lat"), state.user_data.get("lng"))
+    if not location[0]:
+        print("⚠️ 위치 정보가 없어 잠실을 기준으로 검색합니다.")
+        location = (37.5, 127.1)
+        
+    category_poi_data = get_poi_data(search_query, location)
+    
+    if not category_poi_data:
+        print(f"⛔️ '{search_query}'에 대한 POI 데이터가 없습니다.")
+        return {"recommendations": state.get("recommendations", [])}
 
     input_data = {
         "user_data": json.dumps(state.user_data, ensure_ascii=False),
         "trigger_data": json.dumps(state.trigger_data, ensure_ascii=False),
-        # 카테고리별 POI 데이터를 동적으로 전달
-        "poi_data": json.dumps(state.poi_data.get(category, []), ensure_ascii=False)
+        "poi_data": json.dumps(category_poi_data, ensure_ascii=False)
     }
 
     try:
+        if not client:
+            raise Exception("LangSmith Client not initialized")
+            
         prompt_template = client.pull_prompt(prompt_name)
         formatted_messages = prompt_template.format_prompt(**input_data).to_messages()
         llm_raw_result = llm.invoke(formatted_messages)
@@ -52,7 +97,6 @@ def _invoke_agent(state: State, category: str, prompt_name: str) -> Dict[str, An
     except Exception as e:
         print(f"⛔️ {category} 노드 실행 중 오류 발생: {e}")
         return {"recommendations": state.get("recommendations", [])}
-
 
 def restaurant_agent_node(state: State) -> Dict[str, Any]:
     return _invoke_agent(state, "restaurant", "restaurant_prompt")
