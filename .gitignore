@@ -209,3 +209,10 @@ __marimo__/
 .env
 .env.*
 !.env.example
+
+urls.py
+
+
+
+# Project-specific ignores
+src/app/core/urls.py
