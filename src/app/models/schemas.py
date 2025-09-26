@@ -67,11 +67,33 @@ class State(TypedDict):
     judgement_reason: Optional[str] # 검증 LLM의 판단 이유
     final_output: Optional[str] # 최종 JSON 형식의 출력
     check_count: int # 재시도 횟수 (선택적)
-
+    couple_data: Dict[str, Any]
+    partner_data: Dict[str, Any]
+    user_partner_data: Optional[Dict[str, Any]]
 
 class RecommendRequest(BaseModel):
     trigger: Trigger
+    
+class POIResponse(BaseModel):
+    seq: Optional[int]
+    name: str
+    category: str
+    lat: float
+    lng: float
+    indoor: Optional[bool]
+    price_level: Optional[int]
+    open_hours: Optional[Dict[str, str]]
+    alcohol: Optional[int]
+    mood_tag: Optional[str]
+    food_tag: Optional[List[str]]
+    rating_avg: Optional[float]
+    link: Optional[str]
 
+class RecommendResponse(BaseModel):
+    explain: str
+    data: List[POIResponse]
+    
+    
 # ===== Response =====
 class FilterResult(BaseModel):
     allowed: List[str]
