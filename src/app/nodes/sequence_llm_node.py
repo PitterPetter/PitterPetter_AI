@@ -4,8 +4,6 @@ from typing import Dict, Any, List
 from langsmith import Client
 import re
 from app.models.schemas import State
-from ..tests.test_data import initial_state 
-
 # config와 llm 임포트
 from config import llm
 
@@ -73,16 +71,14 @@ def sequence_llm_node(state: State) -> Dict[str, Any]:
         return {"recommended_sequence": state['recommended_sequence'], "status": "failed"}
     
 # 파일 맨 아래에 추가
-if __name__ == "__main__":
-    from ..tests.test_data import initial_state  # <-- 이 부분도 수정되었습니다.
-    import asyncio
+if __name__ == "__main__":  # pragma: no cover - manual smoke test helper
+    try:
+        from app.tests.test_data import initial_state  # type: ignore
+    except ModuleNotFoundError:
+        raise SystemExit("app.tests.test_data is missing; add it or run within test context.")
 
     print("--- sequence_llm_node 테스트 시작 ---")
-    
-    async def test_node():
-        result = sequence_llm_node(initial_state)
-        print("\n--- 테스트 결과 ---")
-        print(f"반환 값: {result}")
-        print(f"업데이트된 상태: {initial_state}")
-        
-    asyncio.run(test_node())
+    result = sequence_llm_node(initial_state)
+    print("\n--- 테스트 결과 ---")
+    print(f"반환 값: {result}")
+    print(f"업데이트된 상태: {initial_state}")

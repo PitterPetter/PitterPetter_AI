@@ -191,8 +191,12 @@ def build_workflow():
     return workflow
 
 
-if __name__ == "__main__":
-    from app.tests.test_data import initial_state
+if __name__ == "__main__":  # pragma: no cover - manual smoke test helper
+    try:
+        from app.tests.test_data import initial_state  # type: ignore
+    except ModuleNotFoundError:
+        raise SystemExit("app.tests.test_data is missing; add it or run within test context.")
+
     graph = build_workflow()
     app = graph.compile()
 
