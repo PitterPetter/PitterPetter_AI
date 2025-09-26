@@ -13,5 +13,7 @@ mypy>=1.11
 types-requests
 pre-commit>=3.8
 
-
+pandas
 openai
+pyproj
+
