@@ -1,10 +1,6 @@
-import json
 from langgraph.graph import StateGraph, END
 from typing import Any, Dict, List, Callable
-from app.models.schemas import State
-from config import llm
-import traceback
-import re
+from app.models.lg_schemas import State
 from langgraph.checkpoint.base import BaseCheckpointSaver
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
@@ -13,7 +9,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 # from app.nodes.data_ingestion import data_ingestion_node
 
 from app.nodes.sequence_llm_node import sequence_llm_node
-from app.nodes.verification_node import verification_node
+#from app.nodes.verification_node import verification_node
 from app.nodes.output_node import output_node
 from app.nodes.category_llm_node import (
     restaurant_agent_node,
@@ -150,7 +146,7 @@ def build_workflow():
    
 
     # 검증 + 출력
-    workflow.add_node("verification", verification_node)
+    #workflow.add_node("verification", verification_node)
     workflow.add_node("output_json", output_node)
 
     # 진입점: 바로 시퀀스 노드부터 시작

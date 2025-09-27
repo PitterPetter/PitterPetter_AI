@@ -6,7 +6,7 @@ import httpx
 from typing import List, Dict, Any
 
 from app.core.settings import OPENWEATHER_API_KEY, TEMP_HOT_C, TEMP_COLD_C, HUMIDITY_HIGH
-from app.core.urls import OpenWeatherEndpoint, openweather_url
+from app.weather.weather_urls import OpenWeatherEndpoint, openweather_url
 from app.utils.timewindow import slot_overlaps
 from app.weather.types import ForecastProvider, WindowSummary
 

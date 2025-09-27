@@ -1,6 +1,6 @@
 # src/app/api/recommend.py
 from fastapi import APIRouter
-from app.models.schemas import State
+from app.models.lg_schemas import State
 from app.pipelines.pipeline import build_workflow
 
 router = APIRouter()

@@ -1,7 +1,7 @@
 
 import time
 from typing import List, Tuple
-from app.models.schemas import State
+from app.models.lg_schemas import State
 from config import PLACES_API_FIELDS
 from app.places_api.text_search_service import search_text
 

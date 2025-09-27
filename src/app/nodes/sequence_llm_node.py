@@ -3,7 +3,8 @@ import json
 from typing import Dict, Any, List
 from langsmith import Client
 import re
-from app.models.schemas import State
+from app.models.lg_schemas import State
+
 # config와 llm 임포트
 from config import llm
 

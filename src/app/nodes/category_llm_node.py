@@ -2,8 +2,8 @@
 import json, time, re
 from typing import Dict, Any, List, Tuple,Optional
 from langsmith import Client
-from app.models.lg_shemas import AgentResponse
-from app.models.schemas import State
+from app.models.lg_schemas import AgentResponse
+from app.models.lg_schemas import State
 from app.places_api.placeApi import get_poi_data
 from config import llm, PLACES_API_FIELDS
 
