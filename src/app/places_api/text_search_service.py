@@ -6,6 +6,7 @@ from .field_mask_helper import build_field_mask  # 같은 패키지 내부는 . 
 
 TEXT_SEARCH_URL = "https://places.googleapis.com/v1/places:searchText"
 
+## 🚩 api 조사 🚩
 def search_text(
     text_query: str,
     location: Optional[Tuple[float, float]] = None,   # (lat, lon)

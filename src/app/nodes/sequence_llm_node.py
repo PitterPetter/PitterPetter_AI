@@ -3,8 +3,7 @@ import json
 from typing import Dict, Any, List
 from langsmith import Client
 import re
-from app.models.schemas import State
-#from ..tests.test_data import initial_state 
+from app.models.lg_schemas import State
 
 # config와 llm 임포트
 from config import llm
@@ -17,21 +16,19 @@ except Exception as e:
     client = None
 
 def sequence_llm_node(state: State) -> Dict[str, Any]:
-    # ... (기존과 동일한 코드) ...
     print("✅ 카테고리 시퀀스 LLM 노드 실행")
     if not client:
         print("⛔️ LangSmith 클라이언트가 없어 노드를 건너뜁니다.")
         return {"recommended_sequence": [], "status": "failed"}
 
     input_data = {
-        "var2": json.dumps(state["available_categories"], ensure_ascii=False, indent=2),
-        "user1": json.dumps(state["user_data"], ensure_ascii=False, indent=2),
-        "user2": json.dumps(state.get("partner_data", state.get("user_partner_data", {})),
-                        ensure_ascii=False, indent=2),  # 테스트 단계에서는 비워두거나 다른 dummy 데이터 넣기
-        "couple": json.dumps(state["couple_data"], ensure_ascii=False, indent=2),  # 마찬가지
-        "trigger": json.dumps(state["trigger_data"], ensure_ascii=False, indent=2),
-        "question": state["query"],
-    }  
+        "var2": json.dumps(state.get("available_categories", []), ensure_ascii=False, indent=2),
+        "user1": json.dumps(state.get("user", {}), ensure_ascii=False, indent=2),
+        "user2": json.dumps(state.get("partner", {}), ensure_ascii=False, indent=2),
+        "couple": json.dumps(state.get("couple", {}), ensure_ascii=False, indent=2),
+        "trigger": json.dumps(state.get("user_choice", {}), ensure_ascii=False, indent=2),
+        "question": state.get("query", ""),
+    }
     try:
         prompt_template = client.pull_prompt("gh_sequence")
         formatted_messages = prompt_template.format_prompt(**input_data).to_messages()
@@ -43,7 +40,7 @@ def sequence_llm_node(state: State) -> Dict[str, Any]:
         else:
             response_text = str(llm_raw_result).strip()
         
-       # ```json ... ``` 제거
+        # ```json ... ``` 제거
         if response_text.startswith("```"):
             response_text = response_text.strip("`").strip()
             if response_text.lower().startswith("json"):
@@ -73,17 +70,4 @@ def sequence_llm_node(state: State) -> Dict[str, Any]:
         state["recommended_sequence"] = []
         return {"recommended_sequence": state['recommended_sequence'], "status": "failed"}
     
-# 파일 맨 아래에 추가
-if __name__ == "__main__":
-    from ..tests.test_data import initial_state  # <-- 이 부분도 수정되었습니다.
-    import asyncio
-
-    print("--- sequence_llm_node 테스트 시작 ---")
     
-    async def test_node():
-        result = sequence_llm_node(initial_state)
-        print("\n--- 테스트 결과 ---")
-        print(f"반환 값: {result}")
-        print(f"업데이트된 상태: {initial_state}")
-        
-    asyncio.run(test_node())

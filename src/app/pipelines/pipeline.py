@@ -1,10 +1,6 @@
-import json
 from langgraph.graph import StateGraph, END
 from typing import Any, Dict, List, Callable
-from app.models.schemas import State
-from config import llm
-import traceback
-import re
+from app.models.lg_schemas import State
 from langgraph.checkpoint.base import BaseCheckpointSaver
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
@@ -13,7 +9,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 # from app.nodes.data_ingestion import data_ingestion_node
 
 from app.nodes.sequence_llm_node import sequence_llm_node
-from app.nodes.verification_node import verification_node
+#from app.nodes.verification_node import verification_node
 from app.nodes.output_node import output_node
 from app.nodes.category_llm_node import (
     restaurant_agent_node,
@@ -150,7 +146,7 @@ def build_workflow():
    
 
     # 검증 + 출력
-    workflow.add_node("verification", verification_node)
+    #workflow.add_node("verification", verification_node)
     workflow.add_node("output_json", output_node)
 
     # 진입점: 바로 시퀀스 노드부터 시작
@@ -176,7 +172,7 @@ def build_workflow():
     for agent_node in parallel_agent_nodes:
         workflow.add_edge(agent_node, "verification")
     '''
-   
+    '''
     # 검증 → 분기
     workflow.add_conditional_edges(
         "verification",
@@ -187,19 +183,9 @@ def build_workflow():
         },
     )
 
+    '''
+    
     workflow.add_edge("output_json", END)
     return workflow
 
 
-if __name__ == "__main__":
-    from app.tests.test_data import initial_state
-    graph = build_workflow()
-    app = graph.compile()
-
-    print("\n[Pipeline] 실행 시작")
-    final_state = app.invoke(initial_state)
-    print("\n[Pipeline] 실행 완료")
-    print("추천 시퀀스:", final_state.get("recommended_sequence"))
-    print("추천 개수:", len(final_state.get("recommendations", [])))
-    print("검증 결과:", final_state.get("current_judge"))
-    print("최종 출력:", final_state.get("final_output"))

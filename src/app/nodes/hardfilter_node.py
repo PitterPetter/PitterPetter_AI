@@ -2,7 +2,7 @@
 from __future__ import annotations
 from typing import Dict, Optional
 from app.models.schemas import Trigger
-from app.filters.hardfilter import run_category_hard_filter
+from app.nodes.hardfilter_node import run_category_hard_filter
 from app.weather.openweather import Free3hForecastProvider
 from app.weather.types import ForecastProvider
 

@@ -1,6 +1,6 @@
 import json
 from typing import Dict, Any
-from app.models.schemas import State
+from app.models.lg_schemas import State
 
 def output_node(state: State) -> Dict[str, Any]:
     """

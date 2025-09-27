@@ -4,7 +4,7 @@ from typing import Dict, List, Set
 from app.core.settings import WEATHER_TZ, TEMP_HOT_C, TEMP_COLD_C, HUMIDITY_HIGH
 from app.utils.timewindow import window_now_to_end_local_strict
 from app.models.schemas import Trigger
-from app.filters.categories import ALL_CATEGORIES, OUTDOOR_STRICT
+from app.utils.filters.categories import ALL_CATEGORIES, OUTDOOR_STRICT
 from app.weather.types import ForecastProvider
 
 async def run_category_hard_filter(*, trigger: Trigger, weather_provider: ForecastProvider) -> Dict[str, object]:

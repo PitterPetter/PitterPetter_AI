@@ -6,7 +6,7 @@ import httpx
 from typing import List, Dict, Any
 
 from app.core.settings import OPENWEATHER_API_KEY, TEMP_HOT_C, TEMP_COLD_C, HUMIDITY_HIGH
-from app.core.urls import ow_url
+from app.weather.weather_urls import OpenWeatherEndpoint, openweather_url
 from app.utils.timewindow import slot_overlaps
 from app.weather.types import ForecastProvider, WindowSummary
 
@@ -20,7 +20,7 @@ class Free3hForecastProvider(ForecastProvider):
             raise RuntimeError("OPENWEATHER_API_KEY missing")
 
     async def _get(self, *, lat: float, lon: float) -> List[Dict[str, Any]]:
-        url = ow_url("forecast3h", pro=False)  # ← 하드코드 제거
+        url = openweather_url(OpenWeatherEndpoint.FORECAST_3H)
         params = {"lat": lat, "lon": lon, "appid": self.api_key, "units": "metric"}
         async with httpx.AsyncClient(timeout=7.0) as client:
             r = await client.get(url, params=params)
