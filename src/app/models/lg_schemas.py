@@ -7,8 +7,10 @@ from app.models.schemas import POIData
 class State(TypedDict):
     """LangGraph의 상태를 나타내는 TypedDict."""
     query: str # 사용자의 초기 요청 (예: "강남에서 데이트 코스 추천해줘")
-    user_data: Dict[str, Any] # 사용자의 유저 데이터 (온보딩 및 기존 데이터)
-    UserChoice_data: Dict[str, Any] # 날씨, 음주 등 트리거 데이터
+    user: Dict[str, Any]               # 사용자 데이터
+    partner: Dict[str, Any]            # 파트너 데이터
+    couple: Dict[str, Any]             # 커플 상태 데이터
+    user_choice: Dict[str, Any]   
     poi_data: Optional[Dict[str, List[POIData]]] # Google Place API에서 수집한 정제된 POI 데이터
     available_categories: List[str] # 하드 필터링 후 남은 카테고리
     recommended_sequence: List[str] # LLM이 추천한 카테고리 시퀀스 (예: "식당", "카페")
