@@ -39,10 +39,6 @@ async def recommend_course(coupleId: str, request: dict):
 
     final_state = app.invoke(state)
 
-
-
-
-
     # LLM/Agent가 만든 결과를 그대로 꺼내기
     return {
         "explain": "오늘 무드에 맞는 코스입니다~", 

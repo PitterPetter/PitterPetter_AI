@@ -172,7 +172,7 @@ def build_workflow():
     for agent_node in parallel_agent_nodes:
         workflow.add_edge(agent_node, "verification")
     '''
-   
+    '''
     # 검증 → 분기
     workflow.add_conditional_edges(
         "verification",
@@ -183,23 +183,9 @@ def build_workflow():
         },
     )
 
+    '''
+    
     workflow.add_edge("output_json", END)
     return workflow
 
 
-if __name__ == "__main__":  # pragma: no cover - manual smoke test helper
-    try:
-        from app.tests.test_data import initial_state  # type: ignore
-    except ModuleNotFoundError:
-        raise SystemExit("app.tests.test_data is missing; add it or run within test context.")
-
-    graph = build_workflow()
-    app = graph.compile()
-
-    print("\n[Pipeline] 실행 시작")
-    final_state = app.invoke(initial_state)
-    print("\n[Pipeline] 실행 완료")
-    print("추천 시퀀스:", final_state.get("recommended_sequence"))
-    print("추천 개수:", len(final_state.get("recommendations", [])))
-    print("검증 결과:", final_state.get("current_judge"))
-    print("최종 출력:", final_state.get("final_output"))

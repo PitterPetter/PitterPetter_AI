@@ -212,7 +212,5 @@ __marimo__/
 
 urls.py
 
-
-
 # Project-specific ignores
-src/app/core/urls.py
+src/app/weather/weather_urls.py
