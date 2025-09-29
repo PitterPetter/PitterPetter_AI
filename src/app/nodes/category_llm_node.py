@@ -93,41 +93,15 @@ def _normalize_open_hours(oh: Optional[dict]) -> dict:
 
 
 # ✅ 추가: LLM 실패/타임아웃 시 스키마에 맞는 기본값 생성
-def _fallback_from_first_place(category: str, places: list[dict], seq_idx: Optional[int]) -> List[dict]:
-    if not places:
-        # 그래도 스키마 유지
-        return [{
-            "name": "rand",
-            "category": category,
-            "lat": -1, "lng": -1,
-            "indoor": False,
-            "price_level": -1,
-            "open_hours": _normalize_open_hours(None),
-            "alcohol": -1,
-            "mood_tag": -1,
-            "food_tag": [],
-            "rating_avg": -1,
-            "link": "rand",
-            **({"seq": (seq_idx + 1)} if seq_idx is not None else {})
-        }]
-    p = places[0]
-    return [{
-        "name": p.get("name") or "rand",
+def _fallback_from_first_place(category: str, places: list[dict], seq_idx: Optional[int]):
+    """실패 시 최소한의 상태 정보만 반환"""
+    return {
+        "status": "failed",
         "category": category,
-        "lat": p.get("lat") if isinstance(p.get("lat"), (int, float)) else -1,
-        "lng": p.get("lng") if isinstance(p.get("lng"), (int, float)) else -1,
-        "indoor": False,                      # 원본에 없으니 기본 False
-        "price_level": p.get("price_level") if isinstance(p.get("price_level"), (int, float)) else -1,
-        "open_hours": _normalize_open_hours(p.get("open_hours")),
-        "alcohol": -1,
-        "mood_tag": -1,
-        "food_tag": [],
-        "rating_avg": p.get("rating") if isinstance(p.get("rating"), (int, float)) else -1,
-        "link": "rand",
-        **({"seq": (seq_idx + 1)} if seq_idx is not None else {})
-    }]
-
-
+        "seq": (seq_idx + 1) if seq_idx is not None else None
+    }
+    
+    
 # 🚩 함수명 -> 카테고리 별 poi 선별 로직 
 def category_poi_get(
     state: State,
@@ -232,12 +206,11 @@ def category_poi_get(
 
     except Exception as e:
         print(f"⛔️ {category} 노드 실행 오류: {e}")
-        # 치명적 오류 시에도 스키마 유지하는 fallback
         return {
-            "recommendations": _fallback_from_first_place(category, places, idx),
-            "poi_data_delta": poi_delta
+            "recommendations": [],
+            "poi_data_delta": {category: []},
+            "status": "failed"
         }
-
 
 # --- 카테고리별 노드 ---
 def restaurant_agent_node(state: State, idx: int | None = None) -> Dict[str, Any]:
