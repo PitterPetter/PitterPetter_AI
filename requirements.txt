@@ -20,7 +20,7 @@ langchain-google-genai
 pandas
 openai
 pyproj
-
+PyJWT
 
 # For testing
 pytest>=8.3
