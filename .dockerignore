@@ -1,0 +1,20 @@
+# Python artifacts
+__pycache__/
+*.py[cod]
+
+# Virtual environments
+.venv/
+
+# Git metadata
+.git/
+
+# Environment files
+.env
+.env.*
+
+# Test assets
+.pytest_cache/
+tests/
+
+# Misc
+.DS_Store
