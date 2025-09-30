@@ -1,0 +1,74 @@
+name: CI for AI Service
+
+# main 브랜치에 push될 때 워크플로우 실행
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. 소스 코드 체크아웃
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # 2. Docker Hub 로그인
+      # Docker Hub에 이미지를 푸시하기 위한 인증
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PAT }}
+
+      # 3. 이미지 버전 태그 생성
+      # Git 커밋 해시의 짧은 버전을 사용하여 고유한 태그 생성
+      - name: Set Image Version Tag
+        id: vars
+        run: echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+
+      # 4. Docker 이미지 빌드 및 푸시
+      # FastAPI 애플리케이션을 Docker 이미지로 빌드하고 Docker Hub에 푸시
+      - name: Build and Push Docker Image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          platforms: linux/amd64
+          push: true
+          tags: |
+            pitterpetter/ai-service:${{ steps.vars.outputs.sha_short }}
+            pitterpetter/ai-service:latest
+          # Dockerfile이 이미 FastAPI 빌드 과정을 포함하고 있으므로 별도 빌드 단계 불필요
+
+      # 5. Manifest Repository 체크아웃
+      # ArgoCD가 참조하는 Manifest Repository에 접근하여 이미지 태그 업데이트
+      - name: Update Manifest Repo
+        uses: actions/checkout@v3
+        with:
+          repository: PitterPetter/PitterPatter-Manifest    # ArgoCD가 바라보는 Organization/Repo
+          token: ${{ secrets.GH_PAT }}       # Personal Access Token 필요
+          path: manifests
+
+      # 6. Manifest Repository에서 이미지 태그 업데이트
+      # values.yaml 파일에서 ai-service의 이미지 태그를 새로 빌드된 태그로 업데이트
+      - name: Update image tag in Deployment yaml
+        run: |
+          cd manifests/charts/loventure
+          # yq를 사용해서 ai-service의 deployment.image.tag만 업데이트
+          yq eval '.ai-service.deployment.image.tag = "${{ steps.vars.outputs.sha_short }}"' -i values.yaml
+          
+          # Git 사용자 정보 설정
+          git config user.name "llokr1"
+          git config user.email "ghdwlsrl100@gachon.ac.kr"
+          
+          # 변경사항 확인 후 커밋
+          if git diff --quiet values.yaml; then
+            echo "No changes detected in values.yaml"
+          else
+            echo "Changes detected:"
+            git diff values.yaml
+            git add values.yaml
+            git commit -m "Update ai-service image to ${{ steps.vars.outputs.sha_short }}"
+            git push origin main
+          fi
