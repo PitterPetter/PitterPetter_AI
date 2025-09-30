@@ -3,11 +3,9 @@ from fastapi import Depends, HTTPException
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 import jwt  # PyJWT
 from datetime import datetime
+from config import SECRET_KEY, ALGORITHM
 
 security = HTTPBearer()
-SECRET_KEY = "너만의_시크릿키"   # 환경변수로 관리 추천
-ALGORITHM = "HS256"
-
 def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
     token = credentials.credentials
     try:
