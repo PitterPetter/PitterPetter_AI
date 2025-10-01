@@ -10,3 +10,4 @@ HUMIDITY_HIGH = int(os.getenv("RECO_HUMIDITY_HIGH", "85"))
 OPENWEATHER_API_KEY = os.getenv("OPENWEATHER_API_KEY", "")
 
 
+KMA_SERVICE_KEY = os.getenv("KMA_API_KEY", "")
