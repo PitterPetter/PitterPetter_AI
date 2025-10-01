@@ -3,11 +3,49 @@ from fastapi import APIRouter, Depends, HTTPException
 from app.core.auth import verify_token  # JWT 검증 함수
 from app.models.lg_schemas import State
 from app.pipelines.pipeline import build_workflow
-
+from app.utils.filters.categories import ALL_CATEGORIES
 router = APIRouter()
 
 graph = build_workflow()
 app = graph.compile()
+
+'''
+@router.post("/api/recommends/{coupleId}")
+async def recommend_course(coupleId: str, request: dict):
+
+    user = request.get("user", {})
+    partner = request.get("partner", {})
+    couple_data = request.get("couple", {})
+    user_choice = request.get("user_choice", {})
+
+    state: State = {
+        "query": "데이트 추천",
+        "user": user,
+        "partner": partner,
+        "user_choice": user_choice,
+        "couple": couple_data,
+        "poi_data": None,
+        "available_categories": ALL_CATEGORIES,
+        "recommended_sequence": [],
+        "recommendations": [],
+        "current_judge": None,
+        "judgement_reason": None,
+        "final_output": None,
+        "check_count": 0
+    }
+
+    #final_state = app.invoke(state)
+    final_state = await app.ainvoke(state) 
+
+    # LLM/Agent가 만든 결과를 그대로 꺼내기
+    return {
+        "explain": "오늘 무드에 맞는 코스입니다~", 
+        "allowed_categories": final_state.get("allowed_categories"),
+        "excluded_categories": final_state.get("excluded_categories"),
+        "debug_weather": final_state.get("hardfilter_debug"),  # 🌟 디버그용
+        "data": final_state.get("recommendations", []),
+    }
+'''
 
 @router.post("/api/recommends/{coupleId}")
 async def recommend_course(
@@ -37,11 +75,11 @@ async def recommend_course(
     # Body에서 user_choice 받기
     user_choice = body.get("user_choice", {})
 
-   # 로컬 request test용
-   # user = request.get("user", {})
-   # partner = request.get("partner", {})
-   # couple_data = request.get("couple", {})
-   # user_choice = request.get("user_choice", {})
+    # 로컬 request test용
+    #user = request.get("user", {})
+    #partner = request.get("partner", {})
+    #couple_data = request.get("couple", {})
+    #user_choice = request.get("user_choice", {})
 
     #langgraph 초기상태
     state: State = {
@@ -51,12 +89,7 @@ async def recommend_course(
         "user_choice": user_choice,
         "couple": couple_data,
         "poi_data": None,
-        "available_categories": [
-            "restaurant", "cafe", "bar",
-            "activity", "attraction", "exhibit",
-            "walk", "view", "nature",
-            "shopping", "performance",
-        ],
+        "available_categories": ALL_CATEGORIES,
         "recommended_sequence": [],
         "recommendations": [],
         "current_judge": None,
@@ -65,10 +98,11 @@ async def recommend_course(
         "check_count": 0
     }
 
-    final_state = app.invoke(state)
+    final_state = await app.ainvoke(state) 
 
     # LLM/Agent가 만든 결과를 그대로 꺼내기
     return {
         "explain": "오늘 무드에 맞는 코스입니다~", 
         "data": final_state.get("recommendations", []),
     }
+    
