@@ -14,6 +14,21 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
+      # 환경 변수 파일 생성 로직 시작 (주석으로 표시된 부분)
+      - name: Create .env file from secret
+        env:
+          DOTENV_CONTENT: ${{ secrets.ENV_FILE }}
+        run: |
+          echo "$DOTENV_CONTENT" > .env
+
+      # weather_urls.py 파일 생성 로직 시작 (주석으로 표시된 부분)
+      - name: Create sensitive file from secret
+        env:
+          SENSITIVE_CONTENT: ${{ secrets.WEATHER_URLS_PY }}
+        run: |
+          echo "$SENSITIVE_CONTENT" > /src/app/weather/weather_urls.py
+
+      # 2. 환경 변수 파일 추가
       # 2. Docker Hub 로그인
       # Docker Hub에 이미지를 푸시하기 위한 인증
       - name: Log in to Docker Hub
@@ -59,8 +74,8 @@ jobs:
           yq eval '.ai-service.deployment.image.tag = "${{ steps.vars.outputs.sha_short }}"' -i values.yaml
           
           # Git 사용자 정보 설정
-          git config user.name "llokr1"
-          git config user.email "ghdwlsrl100@gachon.ac.kr"
+          git config user.name "minjae23"
+          git config user.email "010626kmj@gmail.com"
           
           # 변경사항 확인 후 커밋
           if git diff --quiet values.yaml; then
