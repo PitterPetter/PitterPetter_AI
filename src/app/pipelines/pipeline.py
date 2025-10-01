@@ -5,7 +5,7 @@ from langgraph.checkpoint.base import BaseCheckpointSaver
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # 정제 / 필터 노드는 테스트에서 제외
-# from app.nodes.hardfilter_node import node_category_hard_filter
+from app.nodes.hardfilter_node import node_category_hard_filter
 # from app.nodes.data_ingestion import data_ingestion_node
 
 from app.nodes.sequence_llm_node import sequence_llm_node
@@ -127,6 +127,7 @@ def build_workflow():
     workflow = StateGraph(State)
 
     # 시퀀스 노드
+    workflow.add_node("hardfilter", node_category_hard_filter)  # --- IGNORE ---
     workflow.add_node("sequence_llm", sequence_llm_node)
     workflow.add_node("agent_runner", agent_runner_node)     
     # 카테고리 에이전트 노드
@@ -150,10 +151,11 @@ def build_workflow():
     workflow.add_node("output_json", output_node)
 
     # 진입점: 바로 시퀀스 노드부터 시작
-    workflow.set_entry_point("sequence_llm")
+    workflow.set_entry_point("hardfilter")  # --- IGNORE ---
 
    
    # 단순 직렬 흐름
+    workflow.add_edge("hardfilter", "sequence_llm") 
     workflow.add_edge("sequence_llm", "agent_runner")
     #workflow.add_edge("agent_runner", "verification")
     '''

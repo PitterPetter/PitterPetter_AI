@@ -18,3 +18,4 @@ class WindowSummary:
 
 class ForecastProvider(Protocol):
     async def window_summary(self, *, lat: float, lon: float, start_dt: datetime, end_dt: datetime) -> WindowSummary: ...
+
