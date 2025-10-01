@@ -9,7 +9,7 @@ router = APIRouter()
 graph = build_workflow()
 app = graph.compile()
 
-
+'''
 @router.post("/api/recommends/{coupleId}")
 async def recommend_course(coupleId: str, request: dict):
 
@@ -34,7 +34,7 @@ async def recommend_course(coupleId: str, request: dict):
         "check_count": 0
     }
 
-   #final_state = app.invoke(state)
+    #final_state = app.invoke(state)
     final_state = await app.ainvoke(state) 
 
     # LLM/Agent가 만든 결과를 그대로 꺼내기
@@ -45,8 +45,8 @@ async def recommend_course(coupleId: str, request: dict):
         "debug_weather": final_state.get("hardfilter_debug"),  # 🌟 디버그용
         "data": final_state.get("recommendations", []),
     }
-    
 '''
+
 @router.post("/api/recommends/{coupleId}")
 async def recommend_course(
     coupleId: str,
@@ -76,10 +76,10 @@ async def recommend_course(
     user_choice = body.get("user_choice", {})
 
     # 로컬 request test용
-    user = request.get("user", {})
-    partner = request.get("partner", {})
-    couple_data = request.get("couple", {})
-    user_choice = request.get("user_choice", {})
+    #user = request.get("user", {})
+    #partner = request.get("partner", {})
+    #couple_data = request.get("couple", {})
+    #user_choice = request.get("user_choice", {})
 
     #langgraph 초기상태
     state: State = {
@@ -98,7 +98,7 @@ async def recommend_course(
         "check_count": 0
     }
 
-    final_state = app.invoke(state)
+    final_state = await app.ainvoke(state) 
 
     # LLM/Agent가 만든 결과를 그대로 꺼내기
     return {
@@ -106,4 +106,3 @@ async def recommend_course(
         "data": final_state.get("recommendations", []),
     }
     
-    '''
