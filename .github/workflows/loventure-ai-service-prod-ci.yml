@@ -26,7 +26,7 @@ jobs:
         env:
           SENSITIVE_CONTENT: ${{ secrets.WEATHER_URLS_PY }}
         run: |
-          echo "$SENSITIVE_CONTENT" > /src/app/weather/weather_urls.py
+          echo "$SENSITIVE_CONTENT" > src/app/weather/weather_urls.py
 
       # 2. 환경 변수 파일 추가
       # 2. Docker Hub 로그인
