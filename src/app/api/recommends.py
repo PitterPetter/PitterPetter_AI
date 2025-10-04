@@ -47,7 +47,7 @@ async def recommend_course(coupleId: str, request: dict):
     }
 '''
 
-@router.post("/api/recommends/{coupleId}")
+@router.post("/recommends/{coupleId}")
 async def recommend_course(
     coupleId: str,
     body: dict,
