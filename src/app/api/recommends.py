@@ -10,7 +10,7 @@ graph = build_workflow()
 app = graph.compile()
 
 '''
-@router.post("/api/recommends/{coupleId}")
+@router.post("/api/recommends")
 async def recommend_course(coupleId: str, request: dict):
 
     user = request.get("user", {})
@@ -47,7 +47,7 @@ async def recommend_course(coupleId: str, request: dict):
     }
 '''
 
-@router.post("/recommends/{coupleId}")
+@router.post("/recommends")
 async def recommend_course(
     coupleId: str,
     body: dict,
