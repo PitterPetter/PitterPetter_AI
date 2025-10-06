@@ -10,7 +10,6 @@ router = APIRouter()
 
 graph = build_workflow()
 app = graph.compile()
-AUTH_SERVICE_URL = "http://localhost:8080"  # 로컬 or docker 내부 주소
 
 @router.post("/recommends")
 async def recommend_course(
