@@ -2,11 +2,12 @@
 from fastapi import APIRouter, HTTPException
 from typing import Dict, Any, List, Tuple, Set
 import asyncio
+from collections import defaultdict
 
 from app.models.schemas import ReplaceRequest, RerollResponse
 from app.pipelines.pipeline import build_workflow
 
-# 🧩 카테고리 에이전트 함수들을 직접 호출한다 (그래프 거치지 않음)
+# 🧩 카테고리 에이전트 함수들을 직접 호출 (그래프 거치지 않음)
 from app.nodes.category_llm_node import (
     restaurant_agent_node,
     cafe_agent_node,
@@ -71,11 +72,7 @@ async def replace_recommendations(body: ReplaceRequest):
     - Auth 연동 없이 body로 user/partner/couple 직접 입력 가능  
     - exclude_pois 목록 내 각 seq별로 병렬 리롤 실행  
     - 이전 추천 및 제외 리스트를 기반으로 중복 필터링  
-    - 리턴 포맷:
-        {
-          "explain": "선택한 카테고리 리롤 결과입니다.",
-          "data": [ {seq, name, category, ...}, ... ]
-        }
+    - 같은 카테고리 내에서는 순차 실행하여 중복 방지  
     """
 
     # ✅ 입력 데이터 파싱
@@ -103,30 +100,33 @@ async def replace_recommendations(body: ReplaceRequest):
     # ============================================================
     # 🎯 개별 리롤 실행 함수 (비동기 스레드로)
     # ============================================================
+    already_selected_pois: List[Dict[str, Any]] = []
+    lock = asyncio.Lock()  # 병렬 접근 제어용
+
     async def reroll_one(poi: Dict[str, Any]) -> Dict[str, Any] | None:
+        """단일 POI 재추천 실행"""
         cat_raw = poi.get("category", "")
         seq = poi.get("seq")
         cat = _norm_cat(cat_raw)
-
         fn = AGENT_MAP.get(cat)
         if not fn:
             print(f"[WARN] Unknown category: {cat_raw}")
             return None
 
-        # 🧠 category_llm_node가 기대하는 상태 구조
+        # 🧠 state 구성 — 현재 global memory 포함
         state = {
             "query": f"{cat} 재추천 (seq={seq})",
             "user_data": user_data,
             "partner_data": partner_data,
             "couple_data": couple_data,
-            "UserChoice_data": user_choice,        # 🚨 중요 포인트
+            "UserChoice_data": user_choice,
             "available_categories": [cat],
             "exclude_pois": [poi],
             "previous_recommendations": previous_recommendations,
+            "already_selected_pois": already_selected_pois,  # ✅ 병렬 공유
         }
 
         try:
-            print(f"⚙️ {cat} 재추천 시작 (seq={seq})")
             result = await asyncio.to_thread(fn, state, (seq - 1) if isinstance(seq, int) else None)
         except Exception as e:
             print(f"[ERR] {cat} 실행 실패 (seq={seq}): {e}")
@@ -134,28 +134,52 @@ async def replace_recommendations(body: ReplaceRequest):
 
         recs: List[Dict[str, Any]] = (result or {}).get("recommendations", [])
         if not recs:
-            print(f"[WARN] {cat} 결과 없음 (seq={seq})")
             return None
 
-        # 🔁 중복 필터링 후 첫 후보 픽
         for cand in recs:
-            cand["category"] = cat
-            if _poi_key(cand) in taken:
-                continue
-            cand["seq"] = seq
-            taken.add(_poi_key(cand))
-            print(f"✅ {cat} 리롤 성공 (seq={seq}) → {cand.get('name')}")
-            return cand
-
-        print(f"[WARN] {cat} 후보 중 중복만 존재 (seq={seq})")
+            async with lock:
+                # 중복 확인 (이전 + 이번 라운드)
+                name_key = (cand.get("name") or "").strip().lower()
+                if any(name_key == (p.get("name") or "").strip().lower() for p in already_selected_pois):
+                    continue
+                cand["seq"] = seq
+                cand["category"] = cat
+                already_selected_pois.append(cand)
+                return cand
         return None
 
     # ============================================================
-    # ⚡ 병렬 실행 (비동기 gather)
+    # ⚡ 카테고리별 그룹화 후 실행 (같은 카테고리는 순차, 다른 건 병렬)
     # ============================================================
-    tasks = [reroll_one(poi) for poi in exclude_pois]
-    reroll_results = await asyncio.gather(*tasks)
-    reroll_results = [r for r in reroll_results if r]
+    cat_groups = defaultdict(list)
+    for poi in exclude_pois:
+        cat_groups[_norm_cat(poi.get("category"))].append(poi)
+
+    reroll_results: List[Dict[str, Any]] = []
+
+    async def run_category_group(cat: str, pois: List[Dict[str, Any]]):
+        """같은 카테고리 그룹 순차 실행"""
+        for poi in pois:
+            result = await reroll_one(poi)
+            if result:
+                reroll_results.append(result)
+
+    # 🧵 서로 다른 카테고리는 병렬 실행
+    cat_tasks = [run_category_group(cat, pois) for cat, pois in cat_groups.items()]
+    await asyncio.gather(*cat_tasks)
+
+    # ============================================================
+    # 🔎 최종 중복 필터링 (이름 유사도 포함)
+    # ============================================================
+    unique_results = []
+    seen_names = set()
+    for r in reroll_results:
+        key = r["name"].replace(" ", "").lower()
+        if any(key in s or s in key for s in seen_names):
+            continue
+        seen_names.add(key)
+        unique_results.append(r)
+    reroll_results = unique_results
 
     # ============================================================
     # 🎁 결과 응답
