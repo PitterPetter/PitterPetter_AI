@@ -1,7 +1,8 @@
-# places_api/field_mask_helper.py
 from typing import Optional, Sequence
 
-# Text Search에서 자주 쓰는 안전 기본 세트 (Pro/Enterprise 포함)
+# ===============================================================
+# ✅ 기본 필드 세트 (Google Places API v1 기준)
+# ===============================================================
 DEFAULT_FIELDS = [
     "id", "displayName", "formattedAddress", "location",
     "primaryType", "businessStatus", "types",
@@ -13,27 +14,58 @@ ALIASES = {
     "secondaryOpeningHours": "regularSecondaryOpeningHours",  # 잘못된 이름 교정
 }
 
+# ===============================================================
+# 🔧 내부 정규화 유틸
+# ===============================================================
 def _normalize(f: str) -> str:
+    """
+    필드명을 Places API용 정규화.
+    - 'places.' prefix 자동 추가
+    - '*' 또는 'nextPageToken'은 그대로 유지
+    """
     f = f.strip()
     if not f:
         return ""
-    if f == "*":                 # 개발용 전체 필드
+    if f == "*":  # 개발용 전체 필드
         return "*"
-    if f == "nextPageToken":     # 최상위 토큰은 places. 접두어 없음
+    if f == "nextPageToken":  # 최상위 토큰은 접두어 없음
         return "nextPageToken"
     f = ALIASES.get(f, f)
-    # 이미 places.로 시작하면 그대로 두고, 아니면 붙여준다
     return f if f.startswith("places.") else f"places.{f}"
 
-def build_field_mask(fields: Optional[Sequence[str]] = None) -> str:
-    items = list(fields) if fields else DEFAULT_FIELDS
-    norm = [_normalize(x) for x in items if x is not None]
-    if any(x == "*" for x in norm):
-        return "*"                        # * 이 섞여 있으면 그대로 *
-    # 빈 값 제거하고 중복 제거
-    dedup = []
-    seen = set()
-    for x in norm:
-        if x and x not in seen:
-            dedup.append(x); seen.add(x)
-    return ",".join(dedup)
+# ===============================================================
+# 🧩 필드 마스크 생성 함수 (Nearby, TextSearch 등 공용)
+# ===============================================================
+def build_field_mask(
+    fields: Optional[Sequence[str]] = None,
+    default_mask: Optional[str] = None
+) -> str:
+    """
+    Google Places API용 Field Mask 문자열 생성기.
+
+    Args:
+        fields: 반환할 필드 목록 (예: ["displayName", "location"])
+        default_mask: 기본 fallback 마스크 문자열 (예: "places.id,places.displayName")
+
+    Returns:
+        콤마로 구분된 Field Mask 문자열
+    """
+    # ✅ fields가 지정되면 정규화 처리
+    if fields:
+        norm = [_normalize(x) for x in fields if x]
+        if any(x == "*" for x in norm):
+            return "*"  # 전체 필드 요청
+        # 중복 제거
+        dedup, seen = [], set()
+        for x in norm:
+            if x and x not in seen:
+                dedup.append(x)
+                seen.add(x)
+        return ",".join(dedup)
+
+    # ✅ default_mask 우선
+    if default_mask:
+        return default_mask
+
+    # ✅ 완전 기본값 fallback
+    return ",".join(_normalize(x) for x in DEFAULT_FIELDS)
