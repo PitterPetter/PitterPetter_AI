@@ -99,6 +99,8 @@ def category_poi_get(
         "trigger": json.dumps(user_choice, ensure_ascii=False, indent=2),
         "question": state.get("query", ""),
         "poi_data": json.dumps(places, ensure_ascii=False),
+        "previous_recommendations": json.dumps(state.get("previous_recommendations", []), ensure_ascii=False, indent=2),  # ✅ 기존 유지
+        "already_selected_pois": json.dumps(state.get("already_selected_pois", []), ensure_ascii=False, indent=2),       # ✅ 추가
     }
 
     try:
