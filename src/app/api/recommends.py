@@ -5,7 +5,7 @@ from app.models.lg_schemas import State
 from app.pipelines.pipeline import build_workflow
 from app.utils.filters.categories import ALL_CATEGORIES
 import httpx
-
+from config import AUTH_SERVICE_URL
 router = APIRouter()
 
 graph = build_workflow()
@@ -69,7 +69,6 @@ async def recommend_course(
     }
 
 
-#로컬 테스트용
 '''
 @router.post("/recommends")
 async def recommend_course(request: dict):
@@ -101,9 +100,6 @@ async def recommend_course(request: dict):
     # LLM/Agent가 만든 결과를 그대로 꺼내기
     return {
         "explain": "오늘 무드에 맞는 코스입니다~", 
-        "allowed_categories": final_state.get("allowed_categories"),
-        "excluded_categories": final_state.get("excluded_categories"),
-        "debug_weather": final_state.get("hardfilter_debug"),  # 🌟 디버그용
         "data": final_state.get("recommendations", []),
     }
-    '''
+'''
