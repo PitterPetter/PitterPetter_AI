@@ -1,5 +1,5 @@
 from langgraph.graph import StateGraph, END
-from typing import Any, Dict, List, Callable
+from typing import Any, Dict, List, Callable ,Tuple
 from app.models.lg_schemas import State
 from langgraph.checkpoint.base import BaseCheckpointSaver
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -43,52 +43,57 @@ AGENT_MAP: Dict[str, Callable[[State], Dict[str, Any]]] = {
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Dict, Any, List
 
+from collections import defaultdict
 def agent_runner_node(state: State) -> Dict[str, Any]:
     """
-    sequence_llm가 만든 recommended_sequence를 바탕으로
-    각 카테고리 에이전트를 '노드 내부에서' 동시에 실행해 결과를 누적한다.
-    그래프 레벨 팬아웃을 쓰지 않으므로 프레임워크 스트리밍 이슈를 회피한다.
+    sequence_llm가 만든 recommended_sequence를 기반으로
+    카테고리별 agent를 병렬로 실행하되,
+    같은 카테고리끼리는 순차적으로 실행 (LLM 중복 방지)
     """
     seq: List[str] = state.get("recommended_sequence", [])
     if not seq:
         print("🧩 agent_runner: 실행할 카테고리 없음")
-        state["recommendations"] = state.get("recommendations", [])
-        return {"recommendations": state["recommendations"]}
+        state["recommendations"] = []
+        return {"recommendations": []}
 
-    # 누적 버퍼
     acc: List[Dict[str, Any]] = state.get("recommendations", [])
 
-    MAX_WORKERS = min(4, len(seq))
-    print(f"🧩 agent_runner: {len(seq)}개 카테고리, 병렬 {MAX_WORKERS}개로 실행")
+    # ✅ 카테고리별 그룹화
+    cat_groups = defaultdict(list)
+    for idx, cat in enumerate(seq):
+        cat_groups[cat].append((idx, cat))
 
-    # future 제출 (state만 전달)
-    with ThreadPoolExecutor(max_workers=MAX_WORKERS) as ex:
-        futures = { ex.submit(AGENT_MAP[cat], state, idx): (idx, cat)for idx, cat in enumerate(seq) if AGENT_MAP.get(cat)}
+    already_selected_pois: List[Dict[str, Any]] = []
+    print(f"🧩 agent_runner: {len(seq)}개 카테고리 중 {len(cat_groups)}종 병렬 실행 (같은 카테고리는 직렬)")
 
-        for fut in as_completed(futures):
-            idx, cat = futures[fut]
+    def run_category_group(cat: str, group: List[Tuple[int, str]]):
+        """같은 카테고리 그룹 순차 실행"""
+        for idx, _ in group:
+            fn = AGENT_MAP.get(cat)
+            if not fn:
+                continue
             try:
-                partial = fut.result()
-                if isinstance(partial, dict):
-                    recs = partial.get("recommendations")
-                    if isinstance(recs, list):
-                        # seq 번호 붙이기
-                        for r in recs:
-                            if isinstance(r, dict):
-                                r["seq"] = idx + 1
-                        acc.extend(recs)
-
-                    # 다른 키는 state에 병합
-                    for k, v in partial.items():
-                        if k != "recommendations":
-                            state[k] = v
+                result = fn(state, idx)
+                recs = (result or {}).get("recommendations", [])
+                for r in recs:
+                    # 🔹 같은 카테고리 내 중복 방지
+                    if any(r["name"] == a.get("name") for a in already_selected_pois):
+                        continue
+                    r["seq"] = idx + 1
+                    acc.append(r)
+                    already_selected_pois.append(r)
             except Exception as e:
-                print(f"  • 에이전트 실행 오류 (cat={cat}, idx={idx}): {e}")
+                print(f"[ERR] {cat} 실행 실패 (seq={idx}): {e}")
+
+    # ✅ 다른 카테고리는 병렬 실행
+    with ThreadPoolExecutor(max_workers=min(4, len(cat_groups))) as ex:
+        futures = [ex.submit(run_category_group, cat, group) for cat, group in cat_groups.items()]
+        for _ in as_completed(futures):
+            pass
 
     state["recommendations"] = acc
-    print(f"🧩 agent_runner 완료 — 추천 누적 {len(acc)}개")
+    print(f"🧩 agent_runner 완료 — 총 {len(acc)}개 추천 생성")
     return {"recommendations": acc}
-
 def route_recommendation(state: State) -> str:
     MAX_RETRY = 2
     ok = state.get("current_judge")  # True/False or None

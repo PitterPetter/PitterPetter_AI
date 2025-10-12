@@ -1,17 +1,77 @@
-# src/app/api/recommend.py
+# src/app/api/recommends.py
 from fastapi import APIRouter, Depends, HTTPException
-from app.core.auth import verify_token  # JWT 검증 함수
+from app.core.auth import verify_token
 from app.models.lg_schemas import State
 from app.pipelines.pipeline import build_workflow
 from app.utils.filters.categories import ALL_CATEGORIES
+import httpx
+from config import AUTH_SERVICE_URL
 router = APIRouter()
 
 graph = build_workflow()
 app = graph.compile()
 
+@router.post("/recommends")
+async def recommend_course(
+    body: dict,
+    token_payload: dict = Depends(verify_token)
+):
+    """
+    추천 코스 생성 API
+    - Header: Authorization: Bearer <JWT>
+    - Body: user_choice 정보
+    """
+
+    # 1️⃣ JWT에서 사용자 정보 추출
+    couple_id = token_payload.get("couple_id")
+
+    if not couple_id:
+        raise HTTPException(status_code=401, detail="couple_id 누락")
+
+    # 2️⃣ Auth 서비스에서 커플/유저 정보 요청
+    async with httpx.AsyncClient() as client:
+        auth_url = f"{AUTH_SERVICE_URL}/api/couples/{couple_id}/recommendation-data"
+        response = await client.get(auth_url)
+        if response.status_code != 200:
+            raise HTTPException(status_code=500, detail="Auth 서비스 요청 실패")
+        auth_data = response.json()
+
+    # 3️⃣ Auth 응답 파싱
+    user = auth_data.get("user", {})
+    partner = auth_data.get("partner", {})
+    couple_data = auth_data.get("couple", {})
+
+    # 4️⃣ Body에서 user_choice 받기
+    user_choice = body.get("user_choice", {})
+
+    # 5️⃣ LangGraph 상태 초기화
+    state: State = {
+        "query": "데이트 추천",
+        "user": user,
+        "partner": partner,
+        "user_choice": user_choice,
+        "couple": couple_data,
+        "poi_data": None,
+        "available_categories": ALL_CATEGORIES,
+        "recommended_sequence": [],
+        "recommendations": [],
+        "current_judge": None,
+        "judgement_reason": None,
+        "final_output": None,
+        "check_count": 0
+    }
+
+    final_state = await app.ainvoke(state)
+
+    return {
+        "explain": "오늘 무드에 맞는 코스입니다~",
+        "data": final_state.get("recommendations", []),
+    }
+
+
 '''
-@router.post("/api/recommends")
-async def recommend_course(coupleId: str, request: dict):
+@router.post("/recommends")
+async def recommend_course(request: dict):
 
     user = request.get("user", {})
     partner = request.get("partner", {})
@@ -40,69 +100,6 @@ async def recommend_course(coupleId: str, request: dict):
     # LLM/Agent가 만든 결과를 그대로 꺼내기
     return {
         "explain": "오늘 무드에 맞는 코스입니다~", 
-        "allowed_categories": final_state.get("allowed_categories"),
-        "excluded_categories": final_state.get("excluded_categories"),
-        "debug_weather": final_state.get("hardfilter_debug"),  # 🌟 디버그용
         "data": final_state.get("recommendations", []),
     }
 '''
-
-@router.post("/recommends")
-async def recommend_course(
-    coupleId: str,
-    body: dict,
-    token_payload: dict = Depends(verify_token)  # JWT 토큰에서 user_id, couple_id 확인
-):
-    """
-    추천 코스 생성 API
-    - Header: Authorization: Bearer <JWT>
-    - Body: user_choice 정보
-    """
-
-    # JWT에서 사용자 정보 확인
-    user_id = token_payload.get("user_id")
-    token_couple_id = token_payload.get("couple_id")
-
-    if str(token_couple_id) != coupleId:
-        raise HTTPException(status_code=403, detail="토큰의 couple_id와 요청 경로 불일치")
-
-    # 스프링 서버에서 user / partner 데이터 가져오기 (TODO: 연동 필요)
-    # 여기서는 일단 더미로 처리
-    user = {"id": user_id, "name": "홍길동"}  
-    partner = {"id": 2, "name": "김영희"}  
-    couple_data = {"id": coupleId, "boyfriend_id": user_id, "girlfriend_id": 2}
-
-    # Body에서 user_choice 받기
-    user_choice = body.get("user_choice", {})
-
-    # 로컬 request test용
-    #user = request.get("user", {})
-    #partner = request.get("partner", {})
-    #couple_data = request.get("couple", {})
-    #user_choice = request.get("user_choice", {})
-
-    #langgraph 초기상태
-    state: State = {
-        "query": "데이트 추천",
-        "user": user,
-        "partner": partner,
-        "user_choice": user_choice,
-        "couple": couple_data,
-        "poi_data": None,
-        "available_categories": ALL_CATEGORIES,
-        "recommended_sequence": [],
-        "recommendations": [],
-        "current_judge": None,
-        "judgement_reason": None,
-        "final_output": None,
-        "check_count": 0
-    }
-
-    final_state = await app.ainvoke(state) 
-
-    # LLM/Agent가 만든 결과를 그대로 꺼내기
-    return {
-        "explain": "오늘 무드에 맞는 코스입니다~", 
-        "data": final_state.get("recommendations", []),
-    }
-    

@@ -26,7 +26,7 @@ class POIData(TypedDict):
     lng: float # '경도'
     indoor: bool # '실내외'
     price_level: int # '가격대'
-    open_hours: Any # '요일별 영업시간'은 복잡한 객체일 수 있으므로 Any로 처리
+    open_hours: Optional[Dict[str, str]]
     alcohol: int # '음주 정도'
     mood_tag: str # '무드 태그'는 string 또는 List[str]일 수 있으므로 string으로 처리
     food_tag: List[str] # '음식 태그'는 string 배열이므로 List[str]
@@ -50,3 +50,22 @@ class UserData(TypedDict):
     created_at: str # '생성일'은 datetime이므로 string으로 처리
     updated_at: str # '수정일'은 datetime이므로 string으로 처리
     reroll: int # '재추천 횟수'는 long이므로 int로 처리
+
+
+# 리롤 할 때 쓰일 데이터 구조
+class POI(BaseModel):
+    seq: int
+    name: str
+    category: str
+
+class ReplaceRequest(BaseModel):
+    exclude_pois: List[POI]
+    previous_recommendations: List[POI]
+    user: Dict[str, Any]
+    partner: Optional[Dict[str, Any]] = None
+    couple: Dict[str, Any]
+    user_choice: Optional[Dict[str, Any]] = None
+
+class RerollResponse(BaseModel):
+    explain: str
+    data: List[Dict[str, Any]]
