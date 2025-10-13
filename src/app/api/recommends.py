@@ -23,10 +23,11 @@ async def recommend_course(
     """
 
     # 1️⃣ JWT에서 사용자 정보 추출
-    couple_id = token_payload.get("couple_id")
+    user_id = token_payload.get("UserId")
+    couple_id = token_payload.get("CoupleId")
 
     if not couple_id:
-        raise HTTPException(status_code=401, detail="couple_id 누락")
+        raise HTTPException(status_code=401, detail="CoupleId 누락")
 
     # 2️⃣ Auth 서비스에서 커플/유저 정보 요청
     async with httpx.AsyncClient() as client:
