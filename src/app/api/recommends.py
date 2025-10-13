@@ -23,8 +23,8 @@ async def recommend_course(
     """
 
     # 1️⃣ JWT에서 사용자 정보 추출
-    user_id = token_payload.get("UserId")
-    couple_id = token_payload.get("CoupleId")
+    user_id = token_payload.get("userId")
+    couple_id = token_payload.get("coupleId")
 
     if not couple_id:
         raise HTTPException(status_code=401, detail="CoupleId 누락")
