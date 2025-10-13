@@ -80,6 +80,7 @@ POST /api/recommends/{coupleId}
   ....
 }
 
+
 Response
 {
   "explain": "오늘 무드에 맞는 코스입니다~",
