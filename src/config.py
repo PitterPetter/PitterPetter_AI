@@ -12,8 +12,7 @@ ALGORITHM = "HS256"
 GOOGLE_PLACES_API_KEY = os.getenv("GOOGLE_PLACES_API_KEY")
 
 
-AUTH_SERVICE_URL = "http://loventure-prod-auth-service.auth.svc.cluster.local:8081"
-
+AUTH_SERVICE_URL = os.getenv("AUTH_SERVICE_URL")
 
 # 2) LLM 초기화
 llm = ChatGoogleGenerativeAI(
