@@ -60,19 +60,6 @@ def extract_hh_mm(date_string: str | None) -> str | None:
     return None
 
 
-def to_utc_hh_mm(kst_hh_mm: str | None) -> str | None:
-    """한국시간(HH:MM)을 UTC 기준으로 변환 (LangGraph는 UTC로 작동하므로 변환 필요)"""
-    if not kst_hh_mm:
-        return None
-    try:
-        hh, mm = map(int, kst_hh_mm.split(":"))
-        utc_hour = (hh - 9) % 24  # KST → UTC
-        return f"{utc_hour:02d}:{mm:02d}"
-    except Exception as e:
-        print(f"[WARN] UTC 변환 실패: {kst_hh_mm} -> {e}")
-        return kst_hh_mm
-
-
 # ============================================================
 # 📍 좌표 정규화
 # ============================================================
@@ -158,14 +145,11 @@ async def recommend_course(
     start_hh_mm_kst = extract_hh_mm(start_time_value)
     end_hh_mm_kst = extract_hh_mm(end_time_value)
 
-    start_hh_mm_utc = to_utc_hh_mm(start_hh_mm_kst)
-    end_hh_mm_utc = to_utc_hh_mm(end_hh_mm_kst)
-
-    if not start_hh_mm_utc or not end_hh_mm_utc:
+    if not start_hh_mm_kst or not end_hh_mm_kst:
         print(f"[WARN] 시간 포맷 불일치: start={start_time_value}, end={end_time_value}")
-        user_choice["time_window"] = ["01:00", "13:00"]  # fallback (UTC 01~13시 = KST 10~22시)
+        user_choice["time_window"] = ["10:00", "22:00"]  # fallback (KST 10~22시)
     else:
-        user_choice["time_window"] = [start_hh_mm_utc, end_hh_mm_utc]
+        user_choice["time_window"] = [start_hh_mm_kst, end_hh_mm_kst]
 
     # (2) 좌표 정규화
     start_coords = user_choice.get("start")
