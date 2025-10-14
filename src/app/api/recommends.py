@@ -17,10 +17,9 @@ router = APIRouter()
 graph = build_workflow()
 app = graph.compile()
 
-
-# ---------------------------
-# 시간 문자열에서 HH:MM 추출 (브라우저 로컬 or ISO 모두 지원)
-# ---------------------------
+# ============================================================
+# 🕒 시간 처리 유틸
+# ============================================================
 def extract_hh_mm(date_string: str | None) -> str | None:
     """
     가능한 포맷 모두 처리:
@@ -34,7 +33,7 @@ def extract_hh_mm(date_string: str | None) -> str | None:
     s = str(date_string)
 
     # 1) "HH:MM:SS" 패턴이 포함되어 있다면 그대로 추출
-    m = re.search(r'(\d{2}:\d{2}):\d{2}', s)
+    m = re.search(r"(\d{2}:\d{2}):\d{2}", s)
     if m:
         return m.group(1)
 
@@ -52,7 +51,7 @@ def extract_hh_mm(date_string: str | None) -> str | None:
     if len(parts) >= 5:
         try:
             time_with_seconds = parts[4]
-            if re.match(r'^\d{2}:\d{2}:\d{2}$', time_with_seconds):
+            if re.match(r"^\d{2}:\d{2}:\d{2}$", time_with_seconds):
                 return time_with_seconds[:5]
         except Exception:
             pass
@@ -61,9 +60,22 @@ def extract_hh_mm(date_string: str | None) -> str | None:
     return None
 
 
-# ---------------------------
-# 좌표 정규화: [lat, lon]인지 [lon, lat]인지 자동 판단
-# ---------------------------
+def to_utc_hh_mm(kst_hh_mm: str | None) -> str | None:
+    """한국시간(HH:MM)을 UTC 기준으로 변환 (LangGraph는 UTC로 작동하므로 변환 필요)"""
+    if not kst_hh_mm:
+        return None
+    try:
+        hh, mm = map(int, kst_hh_mm.split(":"))
+        utc_hour = (hh - 9) % 24  # KST → UTC
+        return f"{utc_hour:02d}:{mm:02d}"
+    except Exception as e:
+        print(f"[WARN] UTC 변환 실패: {kst_hh_mm} -> {e}")
+        return kst_hh_mm
+
+
+# ============================================================
+# 📍 좌표 정규화
+# ============================================================
 def normalize_lat_lon(coords) -> Tuple[float | None, float | None]:
     """
     coords: [a, b]
@@ -91,9 +103,9 @@ def normalize_lat_lon(coords) -> Tuple[float | None, float | None]:
     return lat, lon
 
 
-# ---------------------------
-# 추천 코스 생성 API
-# ---------------------------
+# ============================================================
+# 🚀 추천 코스 생성 API
+# ============================================================
 @router.post("/recommends")
 async def recommend_course(
     body: dict,
@@ -139,18 +151,21 @@ async def recommend_course(
     # 3️⃣ user_choice 파싱
     user_choice = body.get("user_choice", {}) or {}
 
-    # (1) 시간 파싱
+    # (1) 시간 파싱 + KST → UTC 변환
     start_time_value = user_choice.get("startTime")
     end_time_value = user_choice.get("endTime")
 
-    start_hh_mm = extract_hh_mm(start_time_value)
-    end_hh_mm = extract_hh_mm(end_time_value)
+    start_hh_mm_kst = extract_hh_mm(start_time_value)
+    end_hh_mm_kst = extract_hh_mm(end_time_value)
 
-    if not start_hh_mm or not end_hh_mm:
+    start_hh_mm_utc = to_utc_hh_mm(start_hh_mm_kst)
+    end_hh_mm_utc = to_utc_hh_mm(end_hh_mm_kst)
+
+    if not start_hh_mm_utc or not end_hh_mm_utc:
         print(f"[WARN] 시간 포맷 불일치: start={start_time_value}, end={end_time_value}")
-        user_choice["time_window"] = ["10:00", "22:00"]  # fallback
+        user_choice["time_window"] = ["01:00", "13:00"]  # fallback (UTC 01~13시 = KST 10~22시)
     else:
-        user_choice["time_window"] = [start_hh_mm, end_hh_mm]
+        user_choice["time_window"] = [start_hh_mm_utc, end_hh_mm_utc]
 
     # (2) 좌표 정규화
     start_coords = user_choice.get("start")
@@ -175,13 +190,13 @@ async def recommend_course(
         "current_judge": None,
         "judgement_reason": None,
         "final_output": None,
-        "check_count": 0
+        "check_count": 0,
     }
 
     # 5️⃣ LangGraph 실행
     final_state = await app.ainvoke(state)
 
     return {
-        "explain": "오늘 무드에 맞는 코스입니다~",
+        "explain": "오늘 무드에 맞는 코스입니다~ (한국시간 기준)",
         "data": final_state.get("recommendations", []),
     }
