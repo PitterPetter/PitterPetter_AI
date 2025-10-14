@@ -9,8 +9,7 @@ __pycache__/
 .git/
 
 # Environment files
-.env
-.env.*
+
 
 # Test assets
 .pytest_cache/
