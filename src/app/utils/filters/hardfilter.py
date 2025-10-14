@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import Dict, List, Set
 from app.core.settings import WEATHER_TZ, TEMP_HOT_C, TEMP_COLD_C, HUMIDITY_HIGH
-from app.utils.timewindow import window_now_to_end_local_strict
+from app.utils.timewindow import window_from_range_local_strict
 from app.utils.filters.categories import ALL_CATEGORIES, OUTDOOR_STRICT
 from app.weather.types import ForecastProvider
 
@@ -10,8 +10,9 @@ async def run_category_hard_filter(*, user_choice: dict, weather_provider: Forec
     allowed: Set[str] = set(ALL_CATEGORIES)
     reasons: Dict[str, List[str]] = {c: [] for c in ALL_CATEGORIES}
 
-    # 시간창 계산 (now→end, strict)
-    start_utc, end_utc = window_now_to_end_local_strict(user_choice["time_window"][1], tz=WEATHER_TZ)
+    # 시간창 계산 (사용자 지정 시작~종료)
+    start_hm, end_hm = user_choice["time_window"]
+    start_utc, end_utc = window_from_range_local_strict(start_hm, end_hm, tz=WEATHER_TZ)
 
     # 예보 요약
     lat = user_choice["start"][1]
