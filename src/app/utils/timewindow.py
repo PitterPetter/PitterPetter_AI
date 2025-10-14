@@ -29,3 +29,30 @@ def window_now_to_end_local_strict(end_hm: str, *, tz: str) -> tuple[datetime, d
     start_utc = now_local.astimezone(timezone.utc)
     end_utc = end_local.astimezone(timezone.utc)
     return start_utc, end_utc
+
+def window_from_range_local_strict(start_hm: str, end_hm: str, *, tz: str) -> tuple[datetime, datetime]:
+    """사용자 정의 시작/종료 시각을 기준으로 UTC 창 계산."""
+
+    tzinfo = ZoneInfo(tz)
+    now_local = datetime.now(tzinfo)
+
+    sh, sm = parse_hm(start_hm)
+    eh, em = parse_hm(end_hm)
+
+    start_local = now_local.replace(hour=sh, minute=sm, second=0, microsecond=0)
+    end_local = now_local.replace(hour=eh, minute=em, second=0, microsecond=0)
+
+    if start_local < now_local:
+        start_local += timedelta(days=1)
+
+    while end_local <= start_local:
+        end_local += timedelta(days=1)
+
+    start_utc = start_local.astimezone(timezone.utc)
+    end_utc = end_local.astimezone(timezone.utc)
+    return start_utc, end_utc
+
+
+def slot_overlaps(slot_start_utc: datetime, slot_hours: int, start_utc: datetime, end_utc: datetime) -> bool:
+    slot_end = slot_start_utc + timedelta(hours=slot_hours) 
+    return (slot_start_utc < end_utc) and (slot_end > start_utc)
