@@ -69,7 +69,7 @@ def category_poi_get(
     if "start" in user_choice:
         start = user_choice["start"]
         if isinstance(start, (list, tuple)) and len(start) == 2:
-            lng, lat = start  # [lng, lat] → (lat, lng)
+            lat,lng = start  # [lng, lat] → (lat, lng)
             print(f"📍 trigger.start 사용 → lat={lat}, lng={lng}")
 
     if lat is None or lng is None:
