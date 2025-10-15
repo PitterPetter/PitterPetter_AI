@@ -61,9 +61,6 @@ class POI(BaseModel):
 class ReplaceRequest(BaseModel):
     exclude_pois: List[POI]
     previous_recommendations: List[POI]
-    user: Dict[str, Any]
-    partner: Optional[Dict[str, Any]] = None
-    couple: Dict[str, Any]
     user_choice: Optional[Dict[str, Any]] = None
 
 class RerollResponse(BaseModel):
