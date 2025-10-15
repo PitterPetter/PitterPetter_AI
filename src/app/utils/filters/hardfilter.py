@@ -15,8 +15,8 @@ async def run_category_hard_filter(*, user_choice: dict, weather_provider: Forec
     start_utc, end_utc = window_from_range_local_strict(start_hm, end_hm, tz=WEATHER_TZ)
 
     # 예보 요약
-    lat = user_choice["start"][1]
-    lon = user_choice["start"][0]
+    lat = user_choice["start"][0]
+    lon = user_choice["start"][1]
     summary = await weather_provider.window_summary(lat=lat, lon=lon, start_dt=start_utc, end_dt=end_utc)
 
     print("🌦️ [HARD FILTER] 날씨 요약:", summary)
