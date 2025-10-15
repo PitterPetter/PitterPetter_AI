@@ -64,6 +64,7 @@ async def recommend_course(
                 )
             auth_data = response.json()
             print("✅ Auth 데이터 수신 완료")
+            print(f"👤 Auth 응답 데이터: {json.dumps(auth_data, ensure_ascii=False)[:500]}")
 
     except httpx.ConnectError as e:
         print("❌ [ConnectError] Auth 서비스 연결 실패:", str(e))
@@ -86,6 +87,7 @@ async def recommend_course(
 
     # 4️⃣ Auth 응답 파싱
     try:
+        data_block = auth_data.get("data", {}) 
         user = auth_data.get("user", {})
         partner = auth_data.get("partner", {})
         couple_data = auth_data.get("couple", {})
