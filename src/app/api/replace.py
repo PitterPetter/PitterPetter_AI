@@ -209,6 +209,8 @@ from config import AUTH_SERVICE_URL
 from app.models.schemas import ReplaceRequest, RerollResponse
 from app.pipelines.pipeline import build_workflow
 
+import json
+
 # 🧩 카테고리 에이전트 함수들을 직접 호출
 from app.nodes.category_llm_node import (
     restaurant_agent_node,
@@ -322,11 +324,13 @@ async def replace_recommendations(
                 raise HTTPException(status_code=response.status_code, detail=f"Auth 요청 실패: {response.text}")
             auth_data = response.json()
             print("✅ Auth 데이터 수신 완료")
+            print(f"👤 Auth 응답 데이터: {json.dumps(auth_data, ensure_ascii=False)[:500]}")
     except httpx.RequestError as e:
         print(f"❌ [RequestError] Auth 서비스 연결 실패: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Auth 서비스 연결 실패: {str(e)}")
 
     # 3️⃣ Auth 데이터 파싱 (recommends.py와 동일)
+    data_block = auth_data.get("data", {}) 
     user_data = auth_data.get("user", {})
     partner_data = auth_data.get("partner", {})
     couple_data = auth_data.get("couple", {})
