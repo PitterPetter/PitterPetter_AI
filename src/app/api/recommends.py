@@ -14,7 +14,6 @@ router = APIRouter()
 graph = build_workflow()
 app = graph.compile()
 
-
 @router.post("/recommends")
 async def recommend_course(
     body: dict,
@@ -34,7 +33,8 @@ async def recommend_course(
     user_id = token_payload.get("userId")
     couple_id = token_payload.get("coupleId")
     print(f"🔐 토큰 payload = {json.dumps(token_payload, ensure_ascii=False)}")
-
+    print (f"👤 userId={user_id}, coupleId={couple_id}")
+    
     if not couple_id:
         print("❌ CoupleId 누락")
         raise HTTPException(status_code=401, detail="CoupleId 누락")
@@ -99,6 +99,21 @@ async def recommend_course(
     # 5️⃣ Body에서 user_choice 받기
     user_choice = body.get("user_choice", {})
     print(f"🧭 user_choice = {json.dumps(user_choice, ensure_ascii=False)}")
+    
+    
+        # user_choice에 startTime/endTime이 있고 time_window 없으면 자동 변환
+    if "time_window" not in user_choice:
+        if user_choice.get("startTime") and user_choice.get("endTime"):
+            from datetime import datetime
+
+            try:
+                start_str = datetime.fromisoformat(user_choice["startTime"].replace("Z", "+00:00")).strftime("%H:%M")
+                end_str = datetime.fromisoformat(user_choice["endTime"].replace("Z", "+00:00")).strftime("%H:%M")
+                user_choice["time_window"] = [start_str, end_str]
+            except Exception as e:
+                print(f"⚠️ time_window 변환 실패: {e}")
+                user_choice["time_window"] = ["00:00", "23:59"]
+
 
     # 6️⃣ LangGraph 파이프라인 실행
     try:
@@ -135,3 +150,59 @@ async def recommend_course(
         "explain": "오늘 무드에 맞는 코스입니다~",
         "data": final_state.get("recommendations", []),
     }
+
+
+'''
+#로컬 테스트용
+
+@router.post("/recommends")
+async def recommend_course(request: dict):
+
+    user = request.get("user", {})
+    partner = request.get("partner", {})
+    couple_data = request.get("couple", {})
+    user_choice = request.get("user_choice", {})
+    
+    
+    # user_choice에 startTime/endTime이 있고 time_window 없으면 자동 변환
+    if "time_window" not in user_choice:
+        if user_choice.get("startTime") and user_choice.get("endTime"):
+            from datetime import datetime
+
+            try:
+                start_str = datetime.fromisoformat(user_choice["startTime"].replace("Z", "+00:00")).strftime("%H:%M")
+                end_str = datetime.fromisoformat(user_choice["endTime"].replace("Z", "+00:00")).strftime("%H:%M")
+                user_choice["time_window"] = [start_str, end_str]
+            except Exception as e:
+                print(f"⚠️ time_window 변환 실패: {e}")
+                user_choice["time_window"] = ["00:00", "23:59"]
+
+
+    state: State = {
+        "query": "데이트 추천",
+        "user": user,
+        "partner": partner,
+        "user_choice": user_choice,
+        "couple": couple_data,
+        "poi_data": None,
+        "available_categories": ALL_CATEGORIES,
+        "recommended_sequence": [],
+        "recommendations": [],
+        "current_judge": None,
+        "judgement_reason": None,
+        "final_output": None,
+        "check_count": 0
+    }
+
+    #final_state = app.invoke(state)
+    final_state = await app.ainvoke(state) 
+
+    # LLM/Agent가 만든 결과를 그대로 꺼내기
+    return {
+        "explain": "오늘 무드에 맞는 코스입니다~", 
+        "allowed_categories": final_state.get("allowed_categories"),
+        "excluded_categories": final_state.get("excluded_categories"),
+        "debug_weather": final_state.get("hardfilter_debug"),  # 🌟 디버그용
+        "data": final_state.get("recommendations", []),
+    }
+'''
