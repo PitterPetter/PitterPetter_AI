@@ -88,9 +88,9 @@ async def recommend_course(
     # 4️⃣ Auth 응답 파싱
     try:
         data_block = auth_data.get("data", {}) 
-        user = auth_data.get("user", {})
-        partner = auth_data.get("partner", {})
-        couple_data = auth_data.get("couple", {})
+        user = data_block.get("user", {})
+        partner = data_block.get("partner", {})
+        couple_data = data_block.get("couple", {})
         print(f"👤 user={bool(user)}, partner={bool(partner)}, couple={bool(couple_data)}")
 
     except Exception as e:
