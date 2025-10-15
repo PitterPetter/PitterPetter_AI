@@ -32,18 +32,51 @@ def simplify_places(raw_places: list[dict]) -> list[dict]:
 
 
 # ✅ Google Places 타입 매핑 (category → included_types)
+# Google Places API v1 Nearby Search - Trendy Mapping (<=5 each)
 TYPE_MAP = {
-    "restaurant": "restaurant",
-    "cafe": "cafe",
-    "bar": "bar",
-    "walk": "park",
-    "exhibit": "museum",
-    "attraction": "tourist_attraction",
-    "view": "tourist_attraction",
-    "nature": "natural_feature",
-    "shopping": "shopping_mall",
-    "performance": "movie_theater",
-    "activity": "point_of_interest",
+    "restaurant": [
+        "restaurant", "korean_restaurant", "japanese_restaurant",
+        "italian_restaurant", "seafood_restaurant",
+    ],
+    "cafe": [
+        "cafe", "bakery", "ice_cream_shop",
+    ],  # 카페는 cafe 하나로도 충분히 넓음. 디저트 성격만 살짝 플러스
+    "bar": [
+        "bar", "pub", "wine_bar", "night_club",
+    ],
+
+    "activity": [
+        "amusement_center", "bowling_alley", "gym", "spa",  # 체험/실내 액티비티
+    ],
+
+    "attraction": [
+        "tourist_attraction", "museum", "art_gallery", "aquarium", "zoo",
+    ],  # 데이트 명소 전반(관광+전시+동/수족관)
+
+    "exhibit": [
+        "museum", "art_gallery",
+    ],  # 전시는 집중 검색이 성능 좋음
+
+    "walk": [
+        "park", "botanical_garden", "trailhead", "plaza", "playground",
+    ],  # 산책감: 공원/정원/광장/산책로(트레일헤드)
+
+    "view": [
+        "tourist_attraction", "bridge", "mountain", "lake",
+    ],  # 전망/뷰 맛집: 지형/다리/명소 위주
+
+    "nature": [
+        "natural_feature", "beach", "mountain", "lake", "waterfall",
+    ],  # 자연감 강한 후보군
+
+    "shopping": [
+        "shopping_mall", "department_store", "clothing_store",
+        "gift_shop", "book_store",
+    ],
+
+    "performance": [
+        "movie_theater", "theater", "stadium",
+    ],
 }
 
 
