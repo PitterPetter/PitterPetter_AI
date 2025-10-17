@@ -33,52 +33,43 @@ def simplify_places(raw_places: list[dict]) -> list[dict]:
 
 # ✅ Google Places 타입 매핑 (category → included_types)
 # Google Places API v1 Nearby Search - Trendy Mapping (<=5 each)
+# Google Places API v1 Nearby Search - 데이트 코스 추천용으로 수정 및 검증된 매핑
 TYPE_MAP = {
     "restaurant": [
-        "restaurant", "korean_restaurant", "japanese_restaurant",
-        "italian_restaurant", "seafood_restaurant",
+        "restaurant",  # 'restaurant' 하나로 검색하는 것이 가장 넓고 안정적입니다.
     ],
     "cafe": [
         "cafe", "bakery", "ice_cream_shop",
-    ],  # 카페는 cafe 하나로도 충분히 넓음. 디저트 성격만 살짝 플러스
+    ],
     "bar": [
-        "bar", "pub", "wine_bar", "night_club",
+        "bar", "night_club",  # pub, wine_bar는 검색용 타입이 아니므로 bar로 통합 검색합니다.
     ],
-
     "activity": [
-        "amusement_center", "bowling_alley", "gym", "spa",  # 체험/실내 액티비티
-    ],
-
+        "amusement_center", "bowling_alley", "gym", "spa", "movie_theater", "performing_arts_theater",
+    ],  # 공연 카테고리를 통합하여 실내 활동의 폭을 넓혔습니다.
     "attraction": [
         "tourist_attraction", "museum", "art_gallery", "aquarium", "zoo",
-    ],  # 데이트 명소 전반(관광+전시+동/수족관)
-
-    "exhibit": [
-        "museum", "art_gallery",
-    ],  # 전시는 집중 검색이 성능 좋음
-
-    "walk": [
-        "park", "botanical_garden", "trailhead", "plaza", "playground",
-    ],  # 산책감: 공원/정원/광장/산책로(트레일헤드)
-
-    "view": [
-        "tourist_attraction", "bridge", "mountain", "lake",
-    ],  # 전망/뷰 맛집: 지형/다리/명소 위주
-
-    "nature": [
-        "natural_feature", "beach", "mountain", "lake", "waterfall",
-    ],  # 자연감 강한 후보군
-
-    "shopping": [
-        "shopping_mall", "department_store", "clothing_store",
-        "gift_shop", "book_store",
     ],
-
+    "exhibit": [
+        "museum", "art_gallery",  # 이 카테고리는 명확해서 그대로 사용합니다.
+    ],
+    "walk": [
+        "park",  # trailhead, plaza 등은 검색 불가. 'park'로 검색하는 것이 가장 적합합니다.
+    ],
+    "view": [
+        "tourist_attraction", # '전망'은 장소 유형이 아니므로, '관광 명소'로 검색 후 LLM이 판단하게 하는 것이 좋습니다. (아래 추가 제안 참고)
+    ],
+    "nature": [
+        "park", "tourist_attraction", # mountain, lake 등 자연물은 검색 불가. '공원', '관광 명소'가 최선입니다.
+    ],
+    "shopping": [
+        "shopping_mall", "department_store", "book_store", "market",
+    ],
+    # 'performance'는 activity에 통합하거나, 그대로 두어도 좋습니다.
     "performance": [
-        "movie_theater", "theater", "stadium",
+        "movie_theater", "performing_arts_theater", "stadium",
     ],
 }
-
 
 # ✅ 공통 POI 검색 및 LLM 처리 함수
 def category_poi_get(
