@@ -1,7 +1,6 @@
 import os
 from dotenv import load_dotenv
 from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain.tools import Tool
 
 # .env 파일에서 환경 변수 로드
 load_dotenv()
@@ -26,4 +25,3 @@ PLACES_API_FIELDS = [
     "primaryType", "types", "priceLevel", "rating", "userRatingCount",
     "regularOpeningHours", "reviews"
 ]
-
