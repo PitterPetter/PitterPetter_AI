@@ -68,6 +68,10 @@ def _build_reroll_state(
     """리롤 실행용 LangGraph state 구성"""
     category = _norm_cat(poi_to_exclude.get("category", ""))
     seq = poi_to_exclude.get("seq")
+    already_selected = [
+        p for p in previous_recommendations if p.get("seq") != seq
+    ]
+
     return {
         "query": f"seq={seq} 위치의 '{poi_to_exclude.get('name')}' 대신 새로운 {category} 장소를 추천해줘.",
         "user": user,
@@ -77,6 +81,7 @@ def _build_reroll_state(
         "available_categories": [category],
         "exclude_pois": previous_recommendations,
         "previous_recommendations": previous_recommendations,
+        "already_selected_pois": already_selected,
     }
 
 # ============================================================

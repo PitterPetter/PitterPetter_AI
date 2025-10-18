@@ -119,6 +119,9 @@ async def recommend_course(
 
     # 7️⃣ LangGraph 파이프라인 실행
     try:
+        previous_recommendations = body.get("previous_recommendations") or []
+        exclude_pois = body.get("exclude_pois") or []
+
         state: State = {
             "query": "데이트 추천",
             "user": user,
@@ -129,6 +132,9 @@ async def recommend_course(
             "available_categories": ALL_CATEGORIES,
             "recommended_sequence": [],
             "recommendations": [],
+            "previous_recommendations": previous_recommendations,
+            "already_selected_pois": list(previous_recommendations),
+            "exclude_pois": exclude_pois,
             "current_judge": None,
             "judgement_reason": None,
             "final_output": None,
@@ -180,6 +186,9 @@ async def recommend_course(request: dict):
                 user_choice["time_window"] = ["00:00", "23:59"]
 
 
+    previous_recommendations = request.get("previous_recommendations") or []
+    exclude_pois = request.get("exclude_pois") or []
+
     state: State = {
         "query": "데이트 추천",
         "user": user,
@@ -190,6 +199,9 @@ async def recommend_course(request: dict):
         "available_categories": ALL_CATEGORIES,
         "recommended_sequence": [],
         "recommendations": [],
+        "previous_recommendations": previous_recommendations,
+        "already_selected_pois": list(previous_recommendations),
+        "exclude_pois": exclude_pois,
         "current_judge": None,
         "judgement_reason": None,
         "final_output": None,
