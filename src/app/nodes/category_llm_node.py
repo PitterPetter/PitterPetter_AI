@@ -115,14 +115,21 @@ def category_poi_get(
     # -----------------------------
     # Google Places Nearby Search 호출
     # -----------------------------
-    included_type = TYPE_MAP.get(category, category)
-    print(f"📡 Google Places Nearby Search 실행: {included_type}, 반경={radius_m}m, 위치=({lat}, {lng})")
+    type_candidates = TYPE_MAP.get(category)
+    if not type_candidates:
+        type_candidates = [category]
+    elif isinstance(type_candidates, str):
+        type_candidates = [type_candidates]
+
+    print(
+        f"📡 Google Places Nearby Search 실행: {type_candidates}, 반경={radius_m}m, 위치=({lat}, {lng})"
+    )
 
     try:
         raw_resp = search_nearby(
             location=search_location,
             radius=radius_m,
-            included_types=[included_type],
+            included_types=type_candidates,
             language=language,
         )
         raw_places = raw_resp.get("places", [])
@@ -131,11 +138,44 @@ def category_poi_get(
         return {"recommendations": [], "poi_data_delta": {category: []}}
 
     if not raw_places:
-        print(f"⛔️ '{included_type}' 카테고리 POI 없음")
+        print(f"⛔️ '{type_candidates}' 카테고리 POI 없음")
         return {"recommendations": [], "poi_data_delta": {category: []}}
 
     poi_delta = {category: raw_places}
     places = simplify_places(raw_places)
+
+    already_selected = state.get("already_selected_pois", []) or []
+    previous_recs = state.get("previous_recommendations", []) or []
+    exclude_pois = state.get("exclude_pois", []) or []
+
+    def _poi_key(p: Dict[str, Any]) -> tuple:
+        name = (p.get("name") or "").strip().lower()
+        lat_val = p.get("lat")
+        lng_val = p.get("lng")
+        # 위치가 없을 수 있으므로, 이름만 일치하면 중복으로 간주
+        return (
+            name,
+            round(float(lat_val), 6) if isinstance(lat_val, (int, float)) else None,
+            round(float(lng_val), 6) if isinstance(lng_val, (int, float)) else None,
+        )
+
+    seen_keys = {
+        _poi_key(p)
+        for p in (*already_selected, *previous_recs, *exclude_pois)
+        if p
+    }
+
+    filtered_places: List[Dict[str, Any]] = []
+    for place in places:
+        key = _poi_key(place)
+        if key in seen_keys:
+            continue
+        filtered_places.append(place)
+        seen_keys.add(key)
+
+    if not filtered_places:
+        print("⚠️ 모든 후보가 기존 추천과 중복되어 필터링됨")
+        filtered_places = places  # 마지막 방어: LLM이 맥락 보고 판단하게 한다
 
     # -----------------------------
     # LLM 입력 데이터 구성
@@ -147,7 +187,7 @@ def category_poi_get(
         "couple": json.dumps(state.get("couple", {}), ensure_ascii=False, indent=2),
         "trigger": json.dumps(state.get("user_choice", {}), ensure_ascii=False, indent=2),
         "question": state.get("query", ""),
-        "poi_data": json.dumps(places, ensure_ascii=False),
+        "poi_data": json.dumps(filtered_places, ensure_ascii=False),
         "previous_recommendations": json.dumps(
             state.get("previous_recommendations", []), ensure_ascii=False, indent=2
         ),

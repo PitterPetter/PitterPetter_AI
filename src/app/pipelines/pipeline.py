@@ -56,14 +56,28 @@ def agent_runner_node(state: State) -> Dict[str, Any]:
         state["recommendations"] = []
         return {"recommendations": []}
 
-    acc: List[Dict[str, Any]] = state.get("recommendations", [])
+    acc: List[Dict[str, Any]] = list(state.get("recommendations", []) or [])
+
+    # 이미 선택된 POI 정보 보존 (이전에 추천된 장소 포함)
+    already_selected_pois: List[Dict[str, Any]] = list(
+        state.get("already_selected_pois")
+        or state.get("previous_recommendations")
+        or []
+    )
+
+    def _poi_key(poi: Dict[str, Any]) -> Tuple[str, float, float]:
+        return (
+            (poi.get("name") or "").strip().lower(),
+            float(poi.get("lat") or 0.0),
+            float(poi.get("lng") or 0.0),
+        )
+
+    seen_keys = {_poi_key(p) for p in already_selected_pois if p}
 
     # ✅ 카테고리별 그룹화
     cat_groups = defaultdict(list)
     for idx, cat in enumerate(seq):
         cat_groups[cat].append((idx, cat))
-
-    already_selected_pois: List[Dict[str, Any]] = []
     print(f"🧩 agent_runner: {len(seq)}개 카테고리 중 {len(cat_groups)}종 병렬 실행 (같은 카테고리는 직렬)")
 
     def run_category_group(cat: str, group: List[Tuple[int, str]]):
@@ -76,12 +90,13 @@ def agent_runner_node(state: State) -> Dict[str, Any]:
                 result = fn(state, idx)
                 recs = (result or {}).get("recommendations", [])
                 for r in recs:
-                    # 🔹 같은 카테고리 내 중복 방지
-                    if any(r["name"] == a.get("name") for a in already_selected_pois):
+                    key = _poi_key(r)
+                    if key in seen_keys:
                         continue
                     r["seq"] = idx + 1
                     acc.append(r)
                     already_selected_pois.append(r)
+                    seen_keys.add(key)
             except Exception as e:
                 print(f"[ERR] {cat} 실행 실패 (seq={idx}): {e}")
 
@@ -92,6 +107,7 @@ def agent_runner_node(state: State) -> Dict[str, Any]:
             pass
 
     state["recommendations"] = acc
+    state["already_selected_pois"] = already_selected_pois
     print(f"🧩 agent_runner 완료 — 총 {len(acc)}개 추천 생성")
     return {"recommendations": acc}
 def route_recommendation(state: State) -> str:
@@ -194,5 +210,4 @@ def build_workflow():
     
     workflow.add_edge("output_json", END)
     return workflow
-
 
