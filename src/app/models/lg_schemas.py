@@ -15,6 +15,9 @@ class State(TypedDict):
     available_categories: List[str] # 하드 필터링 후 남은 카테고리
     recommended_sequence: List[str] # LLM이 추천한 카테고리 시퀀스 (예: "식당", "카페")
     recommendations: List[Dict[str, Any]] # 각 카테고리 에이전트의 추천 결과
+    previous_recommendations: Optional[List[Dict[str, Any]]]
+    already_selected_pois: Optional[List[Dict[str, Any]]]
+    exclude_pois: Optional[List[Dict[str, Any]]]
     current_judge: Optional[bool] # 검증 LLM의 판단 결과
     judgement_reason: Optional[str] # 검증 LLM의 판단 이유
     final_output: Optional[str] # 최종 JSON 형식의 출력
