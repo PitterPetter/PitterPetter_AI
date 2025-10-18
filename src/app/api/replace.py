@@ -26,11 +26,6 @@ from app.nodes.category_llm_node import (
     shopping_agent_node,
     performance_agent_node,
 )
-from app.utils.territory import (
-    TerritoryServiceError,
-    apply_territory_validation,
-    fetch_unlocked_districts,
-)
 
 # ============================================================
 # ⚙️ Router 및 Workflow 설정
@@ -136,28 +131,7 @@ async def replace_recommendations(
 
     # 4️⃣ 요청 바디 파싱
     user_choice = body.user_choice.dict() if hasattr(body.user_choice, "dict") else (body.user_choice or {})
-    try:
-        unlocked_districts = await fetch_unlocked_districts()
-        unlocked_names, unlocked_ids, locked_requests = apply_territory_validation(
-            user_choice, unlocked_districts
-        )
-        print(
-            f"🔓 Territory 해금 지역(리롤): names={json.dumps(unlocked_names, ensure_ascii=False)}, "
-            f"ids={json.dumps(unlocked_ids, ensure_ascii=False)}"
-        )
-    except TerritoryServiceError as territory_error:
-        print(f"❌ Territory 서비스 호출 실패(리롤): {territory_error}")
-        raise HTTPException(status_code=503, detail=str(territory_error))
-
-    if locked_requests:
-        print(f"🔒 잠금된 지역 요청 감지(리롤): {json.dumps(locked_requests, ensure_ascii=False)}")
-        raise HTTPException(
-            status_code=403,
-            detail={
-                "message": "아직 이용할 수 없는 지역이 포함되어 있습니다.",
-                "locked_districts": locked_requests,
-            },
-        )
+    # Territory 지역락 기능 제거: 더 이상 잠금 검증 수행 안 함
     exclude_pois = [poi.dict() for poi in getattr(body, "exclude_pois", [])]
     previous_recommendations = [poi.dict() for poi in getattr(body, "previous_recommendations", [])]
 
