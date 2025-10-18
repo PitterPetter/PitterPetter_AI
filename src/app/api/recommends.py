@@ -4,11 +4,6 @@ from app.core.auth import verify_token
 from app.models.lg_schemas import State
 from app.pipelines.pipeline import build_workflow
 from app.utils.filters.categories import ALL_CATEGORIES
-from app.utils.territory import (
-    TerritoryServiceError,
-    apply_territory_validation,
-    fetch_unlocked_districts,
-)
 from config import AUTH_SERVICE_URL
 import httpx
 import traceback
@@ -120,30 +115,7 @@ async def recommend_course(
                 print(f"⚠️ time_window 변환 실패: {e}")
                 user_choice["time_window"] = ["00:00", "23:59"]
 
-    # 6️⃣ Territory 서비스 호출로 지역 잠금 검증
-    try:
-        unlocked_districts = await fetch_unlocked_districts()
-        unlocked_names, unlocked_ids, locked_requests = apply_territory_validation(
-            user_choice, unlocked_districts
-        )
-        print(
-            f"🔓 Territory 해금 지역: names={json.dumps(unlocked_names, ensure_ascii=False)}, "
-            f"ids={json.dumps(unlocked_ids, ensure_ascii=False)}"
-        )
-    except TerritoryServiceError as territory_error:
-        print(f"❌ Territory 서비스 호출 실패: {territory_error}")
-        raise HTTPException(status_code=503, detail=str(territory_error))
-
-    if locked_requests:
-        print(f"🔒 잠금된 지역 요청 감지: {json.dumps(locked_requests, ensure_ascii=False)}")
-        raise HTTPException(
-            status_code=403,
-            detail={
-                "message": "아직 이용할 수 없는 지역이 포함되어 있습니다.",
-                "locked_districts": locked_requests,
-            },
-        )
-
+    # 6️⃣ Territory 지역 잠금 검증 로직 제거됨 (지역락 미적용)
 
     # 7️⃣ LangGraph 파이프라인 실행
     try:
