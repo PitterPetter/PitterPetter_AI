@@ -13,7 +13,7 @@ GOOGLE_PLACES_API_KEY = os.getenv("GOOGLE_PLACES_API_KEY")
 
 
 AUTH_SERVICE_URL = "http://loventure-prod-auth-service.loventure-app.svc.cluster.local:8081"
-
+TERRITORY_SERVICE_URL = "http://loventure-prod-territory-service.loventure-app.svc.cluster.local:8084"
 
 # 2) LLM 초기화
 llm = ChatGoogleGenerativeAI(
