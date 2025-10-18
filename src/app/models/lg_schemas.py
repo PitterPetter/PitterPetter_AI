@@ -34,10 +34,7 @@ class OpenHours(BaseModel):
     sat: Optional[str] = ""
     sun: Optional[str] = ""
 
-
-
-
-class POIResopnse(BaseModel):       # JSON 강제 구조 정의
+class POIResponse(BaseModel):
     seq: Optional[int] = None
     name: str
     category: str
@@ -45,7 +42,22 @@ class POIResopnse(BaseModel):       # JSON 강제 구조 정의
     lng: float
     indoor: Optional[bool] = None
     price_level: Optional[int] = None
-    open_hours: Dict[str, str] = Field(..., description="매우 중요: 반드시 'mon'부터 'sun'까지의 요일별 영업시간을 포함해야 함. 예: {'mon': '09:00-18:00', 'tue': '09:00-18:00', ...}") 
+    open_hours: OpenHours
+    alcohol: Optional[int] = None
+    mood_tag: Optional[str] = None
+    food_tag: Optional[List[str]] = None
+    rating_avg: Optional[float] = None
+    link: Optional[str] = None
+
+class POIResponse(BaseModel):
+    seq: Optional[int] = None
+    name: str
+    category: str
+    lat: float
+    lng: float
+    indoor: Optional[bool] = None
+    price_level: Optional[int] = None
+    open_hours: OpenHours
     alcohol: Optional[int] = None
     mood_tag: Optional[str] = None
     food_tag: Optional[List[str]] = None
