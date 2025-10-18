@@ -1,6 +1,6 @@
 # src/app/models/schemas.py
 from typing import Tuple, List, Dict, Optional, Any, TypedDict
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, model_validator, ConfigDict
 
 # ===== Request =====
 class UserChoice(BaseModel):
@@ -57,6 +57,16 @@ class POI(BaseModel):
     seq: int
     name: str
     category: str
+    lat: Optional[float] = None
+    lng: Optional[float] = None
+    indoor: Optional[bool] = None
+    price_level: Optional[int] = None
+    open_hours: Optional[Dict[str, Any]] = None
+    alcohol: Optional[int] = None
+    mood_tag: Optional[str] = None
+    food_tag: Optional[List[str]] = None
+    rating_avg: Optional[float] = None
+    link: Optional[str] = None
 
 class ReplaceRequest(BaseModel):
     exclude_pois: List[POI]

@@ -34,20 +34,7 @@ class OpenHours(BaseModel):
     sat: Optional[str] = ""
     sun: Optional[str] = ""
 
-class POIResponse(BaseModel):
-    seq: Optional[int] = None
-    name: str
-    category: str
-    lat: float
-    lng: float
-    indoor: Optional[bool] = None
-    price_level: Optional[int] = None
-    open_hours: OpenHours
-    alcohol: Optional[int] = None
-    mood_tag: Optional[str] = None
-    food_tag: Optional[List[str]] = None
-    rating_avg: Optional[float] = None
-    link: Optional[str] = None
+
 
 
 class POIResopnse(BaseModel):       # JSON 강제 구조 정의
