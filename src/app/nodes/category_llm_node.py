@@ -33,6 +33,7 @@ def simplify_places(raw_places: list[dict]) -> list[dict]:
 
 # ✅ Google Places 타입 매핑 (category → included_types)
 # Google Places API v1 Nearby Search - Trendy Mapping (<=5 each)
+# Google Places API v1 Nearby Search - 데이트 코스 추천용으로 수정 및 검증된 매핑
 TYPE_MAP = {
     "restaurant": [
         "restaurant",  # 'restaurant' 하나로 검색하는 것이 가장 넓고 안정적입니다.
