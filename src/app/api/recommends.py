@@ -14,6 +14,43 @@ router = APIRouter()
 graph = build_workflow()
 app = graph.compile()
 
+
+def _build_response_payload(final_state: State) -> dict:
+    """최종 LangGraph 상태에서 explain/data를 추출한다."""
+    default_explain = (
+        final_state.get("sequence_explain")
+        or "오늘 무드에 맞는 코스입니다~"
+    )
+    default_data = final_state.get("recommendations", [])
+    default_title = (
+        final_state.get("course_title")
+        or final_state.get("query")
+        or "맞춤 데이트 코스"
+    )
+
+    raw_output = final_state.get("final_output")
+    parsed_output = None
+
+    if isinstance(raw_output, dict):
+        parsed_output = raw_output
+    elif isinstance(raw_output, str) and raw_output.strip():
+        try:
+            parsed_output = json.loads(raw_output)
+        except json.JSONDecodeError:
+            print("⚠️ final_output JSON 디코딩 실패, 기본 explain 사용")
+
+    explain = default_explain
+    data = default_data
+    title = default_title
+
+    if parsed_output:
+        explain = parsed_output.get("explain") or explain
+        data = parsed_output.get("data") or data
+        title = parsed_output.get("title") or title
+
+    return {"title": title, "explain": explain, "data": data}
+
+
 @router.post("/recommends")
 async def recommend_course(
     body: dict,
@@ -138,7 +175,9 @@ async def recommend_course(
             "current_judge": None,
             "judgement_reason": None,
             "final_output": None,
-            "check_count": 0
+            "check_count": 0,
+            "course_title": None,
+            "sequence_explain": None,
         }
 
         print("⚙️ LangGraph 실행 시작...")
@@ -154,10 +193,8 @@ async def recommend_course(
     print("🎯 추천 결과 개수:", len(final_state.get("recommendations", [])))
     print("===============================\n")
 
-    return {
-        "explain": "오늘 무드에 맞는 코스입니다~",
-        "data": final_state.get("recommendations", []),
-    }
+    return _build_response_payload(final_state)
+
 
 
 '''
@@ -212,11 +249,12 @@ async def recommend_course(request: dict):
     final_state = await app.ainvoke(state) 
 
     # LLM/Agent가 만든 결과를 그대로 꺼내기
-    return {
-        "explain": "오늘 무드에 맞는 코스입니다~", 
+    response = _build_response_payload(final_state)
+    response.update({
         "allowed_categories": final_state.get("allowed_categories"),
         "excluded_categories": final_state.get("excluded_categories"),
         "debug_weather": final_state.get("hardfilter_debug"),  # 🌟 디버그용
-        "data": final_state.get("recommendations", []),
-    }
+    })
+
+    return response
 '''
