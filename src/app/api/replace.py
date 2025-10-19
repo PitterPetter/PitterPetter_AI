@@ -82,6 +82,8 @@ def _build_reroll_state(
         "exclude_pois": previous_recommendations,
         "previous_recommendations": previous_recommendations,
         "already_selected_pois": already_selected,
+        "course_title": None,
+        "sequence_explain": None,
     }
 
 # ============================================================

@@ -1,4 +1,6 @@
 import json
+import re
+from math import atan2, cos, radians, sin, sqrt
 from typing import Dict, Any, List, Optional
 from langsmith import Client
 from app.models.lg_schemas import AgentResponse, State
@@ -13,13 +15,46 @@ except Exception as e:
     client = None
 
 
+# ✅ 다국어 상호명에서 한글명을 우선 선택
+_HANGUL_PATTERN = re.compile(r"[\u1100-\u11FF\u3130-\u318F\uAC00-\uD7AF]")
+
+
+def _candidate_name_segments(raw_text: str) -> List[str]:
+    segments: List[str] = []
+    for chunk in re.split(r"[\n/|]+", raw_text):
+        chunk = chunk.strip()
+        if not chunk:
+            continue
+        for piece in re.split(r"[()\[\]]+", chunk):
+            piece = piece.strip()
+            if piece:
+                segments.append(piece)
+    return segments or [raw_text.strip()]
+
+
+def _prefer_korean_name(display_name: Optional[Dict[str, Any]]) -> Optional[str]:
+    if not display_name:
+        return None
+
+    raw_text = (display_name.get("text") or "").strip()
+    if not raw_text:
+        return None
+
+    for segment in _candidate_name_segments(raw_text):
+        if _HANGUL_PATTERN.search(segment):
+            return segment
+
+    return _candidate_name_segments(raw_text)[0]
+
+
 # ✅ Google Places → 단순 POI 정제 함수
 def simplify_places(raw_places: list[dict]) -> list[dict]:
     simplified = []
     for p in raw_places:
+        display = p.get("displayName") or {}
         simplified.append({
             "id": p.get("id"),
-            "name": (p.get("displayName") or {}).get("text"),
+            "name": _prefer_korean_name(display),
             "address": p.get("formattedAddress"),
             "lat": (p.get("location") or {}).get("latitude"),
             "lng": (p.get("location") or {}).get("longitude"),
@@ -71,6 +106,49 @@ TYPE_MAP = {
     ],
 }
 
+# ✅ 허버사인 거리를 미터 단위로 계산
+def _distance_meters(origin: tuple[float, float], target: tuple[float, float]) -> float:
+    lat1, lng1 = origin
+    lat2, lng2 = target
+
+    lat1_rad, lat2_rad = radians(lat1), radians(lat2)
+    dlat = radians(lat2 - lat1)
+    dlng = radians(lng2 - lng1)
+
+    a = sin(dlat / 2) ** 2 + cos(lat1_rad) * cos(lat2_rad) * sin(dlng / 2) ** 2
+    c = 2 * atan2(sqrt(a), sqrt(1 - a))
+
+    return 6371000.0 * c  # 지구 반지름 (미터)
+
+
+def _filter_places_within_radius(
+    raw_places: List[Dict[str, Any]],
+    center: tuple[float, float],
+    radius_m: float,
+) -> tuple[List[Dict[str, Any]], int]:
+    filtered: List[Dict[str, Any]] = []
+    removed = 0
+
+    for place in raw_places:
+        loc = place.get("location") or {}
+        plat = loc.get("latitude")
+        plng = loc.get("longitude")
+
+        try:
+            if plat is not None and plng is not None:
+                distance = _distance_meters(center, (float(plat), float(plng)))
+                if distance <= radius_m:
+                    filtered.append(place)
+                else:
+                    removed += 1
+            else:
+                filtered.append(place)
+        except (TypeError, ValueError):
+            filtered.append(place)
+
+    return filtered, removed
+
+
 # ✅ 공통 POI 검색 및 LLM 처리 함수
 def category_poi_get(
     state: State,
@@ -100,8 +178,23 @@ def category_poi_get(
         print("⚠️ 위치 정보 없음 → 기본값 (잠실) 사용")
         lat, lng = 37.5, 127.1
 
-    if radius_m is None:
-        radius_m = user_choice.get("radius_m", 2000)
+    radius_source_km = False
+    radius_candidate = radius_m
+    if radius_candidate is None:
+        radius_candidate = user_choice.get("radius_m")
+    if radius_candidate is None and "radius_km" in user_choice:
+        radius_candidate = user_choice.get("radius_km")
+        radius_source_km = True
+
+    try:
+        radius_m_float = float(radius_candidate)
+        if radius_source_km:
+            radius_m_float *= 1000
+    except (TypeError, ValueError):
+        radius_m_float = 1000.0
+
+    if radius_m_float <= 0:
+        radius_m_float = 1000.0
 
     # ✅ 반드시 추가
     search_location = (lat, lng)
@@ -121,14 +214,16 @@ def category_poi_get(
     elif isinstance(type_candidates, str):
         type_candidates = [type_candidates]
 
+    radius_request_value = int(radius_m_float)
+
     print(
-        f"📡 Google Places Nearby Search 실행: {type_candidates}, 반경={radius_m}m, 위치=({lat}, {lng})"
+        f"📡 Google Places Nearby Search 실행: {type_candidates}, 반경={radius_request_value}m, 위치=({lat}, {lng})"
     )
 
     try:
         raw_resp = search_nearby(
             location=search_location,
-            radius=radius_m,
+            radius=radius_request_value,
             included_types=type_candidates,
             language=language,
         )
@@ -139,6 +234,16 @@ def category_poi_get(
 
     if not raw_places:
         print(f"⛔️ '{type_candidates}' 카테고리 POI 없음")
+        return {"recommendations": [], "poi_data_delta": {category: []}}
+
+    center = (float(search_location[0]), float(search_location[1]))
+    raw_places, removed_count = _filter_places_within_radius(raw_places, center, radius_m_float)
+
+    if removed_count:
+        print(f"✂️ 반경 초과 POI 제외: {removed_count}개 (반경 {radius_m_float}m)")
+
+    if not raw_places:
+        print("⛔️ 반경 내 유효한 POI 없음")
         return {"recommendations": [], "poi_data_delta": {category: []}}
 
     poi_delta = {category: raw_places}

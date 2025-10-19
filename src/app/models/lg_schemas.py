@@ -22,6 +22,8 @@ class State(TypedDict):
     judgement_reason: Optional[str] # 검증 LLM의 판단 이유
     final_output: Optional[str] # 최종 JSON 형식의 출력
     check_count: int # 재시도 횟수 (선택적)
+    course_title: Optional[str]
+    sequence_explain: Optional[str]
 
 # Response 스키마
 
