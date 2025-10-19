@@ -22,9 +22,14 @@ def output_node(state: State) -> Dict[str, Any]:
     """
     print("✅ 최종 JSON 출력 노드 실행")
     
+    title = state.get("course_title") or state.get("query") or "맞춤 데이트 코스"
+    explain_text = state.get("sequence_explain")
+
     # 추천된 장소 리스트 (state.recommendations 에 들어있다고 가정)
     places = []
-    for idx, rec in enumerate(state.recommendations, start=1):
+    recommendations = state.get("recommendations") or []
+
+    for idx, rec in enumerate(recommendations, start=1):
         place_info = {
             "seq": idx,
             "name": rec.get("name"),
@@ -44,11 +49,13 @@ def output_node(state: State) -> Dict[str, Any]:
 
     # 최종 출력 데이터 구조
     final_output_data = {
-        "explain": random.choice(EXPLAIN_CHOICES),
+        "title": title,
+        "explain": explain_text or random.choice(EXPLAIN_CHOICES),
         "data": places
     }
 
     # JSON 문자열 변환 후 상태에 저장
-    state.final_output = json.dumps(final_output_data, ensure_ascii=False, indent=4)
-    
-    return {"final_output": state.final_output}
+    final_output_json = json.dumps(final_output_data, ensure_ascii=False, indent=4)
+    state["final_output"] = final_output_json
+
+    return {"final_output": final_output_json}

@@ -178,6 +178,7 @@ def build_workflow():
    # 단순 직렬 흐름
     workflow.add_edge("hardfilter", "sequence_llm") 
     workflow.add_edge("sequence_llm", "agent_runner")
+    workflow.add_edge("agent_runner", "output_json")
     #workflow.add_edge("agent_runner", "verification")
     '''
     # 병렬 에지
@@ -210,4 +211,3 @@ def build_workflow():
     
     workflow.add_edge("output_json", END)
     return workflow
-

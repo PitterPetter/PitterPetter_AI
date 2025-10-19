@@ -20,4 +20,10 @@ async def node_category_hard_filter(state: Dict, provider: Optional[ForecastProv
         p = KmaForecastProvider()
 
     result = await run_category_hard_filter(user_choice=user_choice, weather_provider=p)
-    return {**state, **result}
+
+    merged_state = {**state, **result}
+    allowed = result.get("allowed_categories")
+    if allowed:
+        merged_state["available_categories"] = allowed
+
+    return merged_state
