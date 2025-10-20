@@ -10,7 +10,7 @@ from app.places_api.text_search_service import search_text
 def get_poi_data(
     query: str,
     location: Tuple[float, float],
-    radius: int = 1000,
+    radius: int = 1600,
     language: str = "ko",
     page_delay_sec: float = 2.0,   # 다음 페이지 토큰 활성화 대기
 ) -> list:

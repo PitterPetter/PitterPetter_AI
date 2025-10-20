@@ -191,10 +191,10 @@ def category_poi_get(
         if radius_source_km:
             radius_m_float *= 1000
     except (TypeError, ValueError):
-        radius_m_float = 1000.0
+        radius_m_float = 1600.0
 
     if radius_m_float <= 0:
-        radius_m_float = 1000.0
+        radius_m_float = 1600.0
 
     # ✅ 반드시 추가
     search_location = (lat, lng)
