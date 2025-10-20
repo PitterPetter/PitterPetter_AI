@@ -22,7 +22,7 @@ from .field_mask_helper import build_field_mask
 
 def search_nearby(
     location: Tuple[float, float],
-    radius: int = 1000,
+    radius: int = 1600,
     included_types: Optional[Sequence[str]] = None,
     fields: Optional[Sequence[str]] = None,
     language: Optional[str] = "ko",
@@ -34,7 +34,7 @@ def search_nearby(
 
     Args:
         location: (위도, 경도) 튜플 — 검색 중심점
-        radius: 검색 반경 (미터 단위, 기본=1000m)
+        radius: 검색 반경 (미터 단위, 기본=1600m)
         included_types: 포함할 장소 유형 리스트 (예: ["restaurant"])
         fields: 반환할 필드 목록 (예: ["displayName", "location", "rating"])
         language: 결과 언어 코드 (기본 "ko")
